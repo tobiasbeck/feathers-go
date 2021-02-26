@@ -1,0 +1,19 @@
+version: '3'
+services:
+  server:
+    build: ./dev-env/server
+    ports:
+    - '3020:3020'
+    volumes:
+    - './:/usr/src/'
+    links:
+    - 'mongo'
+    - 'redis'
+  mongo:
+    image:  mongo:4.2.5
+    volumes:
+    - 'test-db:/data/db'
+  redis:
+    image:  redis:5
+volumes:
+  test-db:
