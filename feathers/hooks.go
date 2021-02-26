@@ -64,6 +64,22 @@ func (hc *HookParams) SetField(key string, value interface{}) {
 	hc.fields[key] = value
 }
 
+func NewParams() *HookParams {
+	return &HookParams{
+		Params: make(map[string]interface{}),
+		fields: make(map[string]interface{}),
+		Query:  make(map[string]interface{}),
+	}
+}
+
+func NewParamsQuery(query map[string]interface{}) *HookParams {
+	return &HookParams{
+		Params: make(map[string]interface{}),
+		fields: make(map[string]interface{}),
+		Query:  query,
+	}
+}
+
 // HookContext is the context which is passed to every go-feathers hook
 type HookContext struct {
 	App        App
