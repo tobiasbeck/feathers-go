@@ -7,4 +7,4 @@ RUN go get github.com/githubnemo/CompileDaemon
 ENV APP_ENV=devcontainer
 
 # start app
-ENTRYPOINT CompileDaemon --directory="./" --build="go build cmd/main.go" --command=./main
+ENTRYPOINT CompileDaemon --directory="./" --build="go build development/cmd/main.go" --command=./main

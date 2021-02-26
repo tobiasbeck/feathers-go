@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
 type requestRegistration struct {
