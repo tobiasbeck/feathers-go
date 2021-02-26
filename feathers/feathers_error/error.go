@@ -1,4 +1,4 @@
-package fErr
+package feathers_error
 
 type FeathersError struct {
 	Name      string      `json:"name"`

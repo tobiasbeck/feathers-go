@@ -1,4 +1,4 @@
-package feathersAuth
+package feathers_auth
 
 import "github.com/tobiasbeck/feathers-go/feathers"
 

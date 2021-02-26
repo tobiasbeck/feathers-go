@@ -13,6 +13,9 @@
 
 /main
 
+cmd/
+docker-compose.yaml
+pkg/
 development/
 
 # Dependency directories (remove the comment below to include it)

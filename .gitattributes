@@ -44,6 +44,4 @@
 *.tgz binary
 *.mp3 binary
 *.ai binary
-hackero binary
-
 slimerjs/* auto

@@ -1,4 +1,4 @@
-package feathersRedisSync
+package feathers_redis_sync
 
 import (
 	"errors"

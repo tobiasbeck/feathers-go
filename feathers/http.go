@@ -115,7 +115,7 @@ func (h *HttpProvider) respond(response http.ResponseWriter, data interface{}) {
 
 func responseCode(data interface{}) int {
 	code := 200
-	if err, ok := data.(fErr.FeathersError); ok {
+	if err, ok := data.(feathers_error.FeathersError); ok {
 		code = err.Code
 	}
 	return code

@@ -1,9 +1,9 @@
-package feathersMongo
+package feathers_mongo
 
 import (
 	"github.com/go-playground/validator"
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/fErr"
+	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -18,10 +18,10 @@ type Service struct {
 // Service routes
 
 func (f *Service) Find(params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewNotImplemented("Function is not implemented", nil)
+	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 func (f *Service) Get(id string, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewNotImplemented("Function is not implemented", nil)
+	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 
 func (f *Service) Create(data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
@@ -46,19 +46,19 @@ func (f *Service) Create(data map[string]interface{}, params feathers.HookParams
 }
 
 func (f *Service) Update(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewNotImplemented("Function is not implemented", nil)
+	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 
 func (f *Service) Patch(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewNotImplemented("Function is not implemented", nil)
+	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 
 func (f *Service) Remove(id string, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewNotImplemented("Function is not implemented", nil)
+	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 
 func notReady() error {
-	return fErr.NewGeneralError("Service not ready", nil)
+	return feathers_error.NewGeneralError("Service not ready", nil)
 }
 
 func (f *Service) getCollection() (*mongo.Collection, bool) {

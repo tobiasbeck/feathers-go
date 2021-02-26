@@ -1,8 +1,8 @@
-package feathersAuth
+package feathers_auth
 
 import (
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/fErr"
+	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
 type AuthService struct {
@@ -16,40 +16,40 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.HookP
 	model := Model{}
 	err := as.MapAndValidateStruct(data, &model)
 	if err != nil {
-		return nil, fErr.Convert(err)
+		return nil, feathers_error.Convert(err)
 	}
 	if strategy, ok := as.authStrategies[model.Strategy]; ok {
 		result, err := strategy.Authenticate(model, params)
 		if err != nil {
-			return nil, fErr.Convert(err)
+			return nil, feathers_error.Convert(err)
 		}
 		if _, ok := result["accessToken"]; ok {
 			return result, nil
 		}
-		return nil, fErr.NewGeneralError("Internal auth error occurred", nil)
+		return nil, feathers_error.NewGeneralError("Internal auth error occurred", nil)
 	}
-	return nil, fErr.NewGeneralError("Strategy "+model.Strategy+" not registered", nil)
+	return nil, feathers_error.NewGeneralError("Strategy "+model.Strategy+" not registered", nil)
 }
 
 // Remove TODO
 func (as *AuthService) Remove(id string, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewMethodNotAllowed("Not supported", nil)
+	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Find(params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewMethodNotAllowed("Not supported", nil)
+	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Get(id string, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewMethodNotAllowed("Not supported", nil)
+	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Patch(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewMethodNotAllowed("Not supported", nil)
+	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Update(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
-	return nil, fErr.NewMethodNotAllowed("Not supported", nil)
+	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
 func ConfigureAuthentication(app *feathers.App, config map[string]interface{}) error {
