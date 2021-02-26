@@ -18,7 +18,22 @@ type Service struct {
 // Service routes
 
 func (f *Service) Find(params feathers.HookParams) (interface{}, error) {
-	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
+	if collection, ok := f.getCollection(); ok {
+
+		result, err := collection.Find(params.CallContext, params.Query)
+		if err != nil {
+			return nil, err
+		}
+
+		var returnData []map[string]interface{}
+		err = result.All(params.CallContext, &returnData)
+		if err != nil {
+			return nil, err
+		}
+
+		return returnData, err
+	}
+	return nil, notReady()
 }
 func (f *Service) Get(id string, params feathers.HookParams) (interface{}, error) {
 	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
@@ -40,7 +55,15 @@ func (f *Service) Create(data map[string]interface{}, params feathers.HookParams
 		if err != nil {
 			return nil, err
 		}
-		return result.InsertedID, err
+		modelMap, err := f.StructToMap(model)
+		if err != nil {
+			return nil, err
+		}
+		modelMap["_id"] = result.InsertedID
+		// findResult := collection.FindOne(params.CallContext, bson.D{{"_id", result.InsertedID}})
+		// var document map[string]interface{}
+		// findResult.Decode(&document)
+		return modelMap, nil
 	}
 	return nil, notReady()
 }

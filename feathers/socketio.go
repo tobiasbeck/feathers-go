@@ -87,8 +87,8 @@ func (p *SocketIOProvider) listenEvent(event string) {
 	})
 }
 
-func (p *SocketIOProvider) Handle(callMethod CallMethod, caller socketCaller, service string, data map[string]interface{}, id string) {
-	p.app.HandleRequest("socketio", callMethod, &caller, service, data, id)
+func (p *SocketIOProvider) Handle(callMethod CallMethod, caller socketCaller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
+	p.app.HandleRequest("socketio", callMethod, &caller, service, data, id, query)
 }
 
 func (fs *SocketIOProvider) Listen(port int, serveMux *http.ServeMux) {
@@ -106,17 +106,27 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 		response:      response,
 		errorResponse: responseErr,
 	}
+
+	callMethod := getCallMethod(event)
 	var reqData map[string]interface{}
+	var reqQuery map[string]interface{}
 	var id string
+
 	switch v := data[1].(type) {
 	case string:
 		id = data[1].(string)
-		reqData = data[2].(map[string]interface{})
+		if secondData, ok := data[2].(map[string]interface{}); ok {
+			reqQuery = filterData(dl_query, callMethod, secondData)
+			reqData = filterData(dl_data, callMethod, secondData)
+		}
 	case map[string]interface{}:
-		reqData = v
-
+		reqQuery = filterData(dl_query, callMethod, v)
+		reqData = filterData(dl_data, callMethod, v)
 	}
-	fs.Handle(getCallMethod(event), caller, service, reqData, id)
+	if len(data) >= 4 {
+		reqQuery = data[3].(map[string]interface{})
+	}
+	fs.Handle(callMethod, caller, service, reqData, id, reqQuery)
 }
 
 // Publishable Service

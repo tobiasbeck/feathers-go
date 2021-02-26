@@ -52,6 +52,7 @@ type HookParams struct {
 	CallContext       context.Context
 	CallContextCancel context.CancelFunc
 	fields            map[string]interface{}
+	Query             map[string]interface{}
 }
 
 func (hc *HookParams) GetField(key string) (interface{}, bool) {

@@ -30,6 +30,40 @@ type task struct {
 	context   *HookContext
 }
 
+// ---------------
+
+type locationType string
+
+const (
+	dl_query locationType = "query"
+	dl_data  locationType = "data"
+)
+
+func filterLocation(dataLocation locationType, location locationType, data map[string]interface{}) map[string]interface{} {
+	if dataLocation == location {
+		return data
+	}
+	return make(map[string]interface{})
+}
+
+func filterData(location locationType, method CallMethod, data map[string]interface{}) map[string]interface{} {
+	switch method {
+	case Find:
+		return filterLocation(dl_query, location, data)
+	case Get:
+		return filterLocation(dl_query, location, data)
+	case Create:
+		return filterLocation(dl_data, location, data)
+	case Remove:
+		return filterLocation(dl_query, location, data)
+	case Patch:
+		return filterLocation(dl_data, location, data)
+	case Update:
+		return filterLocation(dl_data, location, data)
+	}
+	return nil
+}
+
 func paramContextCancelled(ctx HookContext) bool {
 	context := ctx.Params.CallContext
 	if context.Err() == nil {
@@ -37,6 +71,8 @@ func paramContextCancelled(ctx HookContext) bool {
 	}
 	return true
 }
+
+// ---------------
 
 type Provider interface {
 	Listen(port int, mux *http.ServeMux)
@@ -85,7 +121,7 @@ func (a *App) Startup(executorSize int) {
 	}
 }
 
-func (a *App) HandleRequest(provider string, method CallMethod, c Caller, service string, data interface{}, id string) {
+func (a *App) HandleRequest(provider string, method CallMethod, c Caller, service string, data interface{}, id string, query map[string]interface{}) {
 	if serviceInstance, ok := a.services[service]; ok {
 		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		go func() {
@@ -106,6 +142,7 @@ func (a *App) HandleRequest(provider string, method CallMethod, c Caller, servic
 				CallContextCancel: cancel,
 				Headers:           "",
 				fields:            make(map[string]interface{}),
+				Query:             query,
 			},
 		}
 		// fmt.Printf("Handle: Hooks %#v", serviceInstance.GetHooks())
@@ -147,7 +184,7 @@ func (a *App) processServiceMethod(serviceTask task) {
 		result, err = serviceTask.service.Get(serviceTask.context.ID, serviceTask.context.Params)
 	}
 	if err != nil {
-		fmt.Printf("Method returned error %#s\n", err.Error())
+		fmt.Printf("Method returned error: %#s\n", err.Error())
 		errorContext := serviceTask.context
 		errorContext.Type = Error
 		errorContext.Error = err
@@ -223,11 +260,7 @@ func (a *App) mergeAppHooks(chain []func(ctx *HookContext) (*HookContext, error)
 	if appHooks, ok := getField(&a.hooks, strings.Title(hookType.String())); ok {
 		appHookBranch := appHooks.(HooksTreeBranch)
 		appHookChain := appHookBranch.GetBranch(branch)
-		chainCopy := make([]func(ctx *HookContext) (*HookContext, error), len(chain))
-		appHooksCopy := make([]func(ctx *HookContext) (*HookContext, error), len(appHookChain))
-		copy(appHooksCopy, appHookChain)
-		copy(chainCopy, chain)
-		return append(appHooksCopy, chainCopy...)
+		return mergeHooks(appHookChain, chain)
 	}
 	return chain
 }

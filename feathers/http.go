@@ -70,31 +70,31 @@ func (h *HttpProvider) ServeHTTP(response http.ResponseWriter, request *http.Req
 		case "GET":
 			var result interface{}
 			if serviceRequest.id != "" {
-				h.app.HandleRequest("http", Get, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+				h.app.HandleRequest("http", Get, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 				result = <-chanResponse
 
 			} else {
-				h.app.HandleRequest("http", Find, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+				h.app.HandleRequest("http", Find, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 				result = <-chanResponse
 			}
 
 			h.respond(response, result)
 		case "POST":
-			h.app.HandleRequest("http", Create, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+			h.app.HandleRequest("http", Create, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 			result := <-chanResponse
 			h.respond(response, result)
 
 		case "PUT":
-			h.app.HandleRequest("http", Update, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+			h.app.HandleRequest("http", Update, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 			result := <-chanResponse
 			h.respond(response, result)
 
 		case "PATCH":
-			h.app.HandleRequest("http", Patch, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+			h.app.HandleRequest("http", Patch, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 			result := <-chanResponse
 			h.respond(response, result)
 		case "DELETE":
-			h.app.HandleRequest("http", Remove, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id)
+			h.app.HandleRequest("http", Remove, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
 			result := <-chanResponse
 			h.respond(response, result)
 		}

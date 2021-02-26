@@ -7,6 +7,15 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func mergeHooks(chainA []Hook, chainB []Hook) []Hook {
+
+	copyA := make([]func(ctx *HookContext) (*HookContext, error), len(chainA))
+	copyB := make([]func(ctx *HookContext) (*HookContext, error), len(chainB))
+	copy(copyA, chainA)
+	copy(copyB, chainB)
+	return append(copyA, copyB...)
+}
+
 type Service interface {
 	Find(params HookParams) (interface{}, error)
 	Get(id string, params HookParams) (interface{}, error)
@@ -23,6 +32,7 @@ type Service interface {
 }
 
 type HooksTreeBranch struct {
+	All    []Hook
 	Find   []Hook
 	Get    []Hook
 	Create []Hook
@@ -35,7 +45,8 @@ func (b HooksTreeBranch) GetBranch(method CallMethod) []Hook {
 	key := strings.Title(method.String())
 	// fmt.Printf("checkBranch %#v\n", b)
 	if chain, ok := getField(&b, key); ok == true {
-		return chain.([]Hook)
+		hc := chain.([]Hook)
+		return mergeHooks(b.All, hc)
 	}
 	return make([]Hook, 0)
 }
@@ -67,6 +78,15 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 		return nil, err
 	}
 	return model, nil
+}
+
+func (m *ModelService) StructToMap(data interface{}) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	err := mapstructure.Decode(data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (m *ModelService) MapToStruct(data map[string]interface{}, target interface{}) error {
