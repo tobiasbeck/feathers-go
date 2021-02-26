@@ -109,15 +109,17 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 
 	callMethod := getCallMethod(event)
 	var reqData map[string]interface{}
-	var reqQuery map[string]interface{}
+	reqQuery := make(map[string]interface{})
 	var id string
 
 	switch v := data[1].(type) {
 	case string:
 		id = data[1].(string)
-		if secondData, ok := data[2].(map[string]interface{}); ok {
-			reqQuery = filterData(dl_query, callMethod, secondData)
-			reqData = filterData(dl_data, callMethod, secondData)
+		if len(data) >= 3 {
+			if secondData, ok := data[2].(map[string]interface{}); ok {
+				reqQuery = filterData(dl_query, callMethod, secondData)
+				reqData = filterData(dl_data, callMethod, secondData)
+			}
 		}
 	case map[string]interface{}:
 		reqQuery = filterData(dl_query, callMethod, v)

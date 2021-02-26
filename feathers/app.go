@@ -174,6 +174,8 @@ func (a *App) processServiceMethod(serviceTask task) {
 	switch serviceTask.method {
 	case Create:
 		result, err = serviceTask.service.Create(serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
+	case Update:
+		result, err = serviceTask.service.Update(serviceTask.context.ID, serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
 	case Patch:
 		result, err = serviceTask.service.Patch(serviceTask.context.ID, serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
 	case Remove:
