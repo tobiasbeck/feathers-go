@@ -10,9 +10,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+//ConfigureMongoClient configures a mongo client for usage whith the mongoservice
+/*
+	client is saved to `mongoClient` key in app config
+*/
 func ConfigureMongoClient(app *feathers.App, config map[string]interface{}) error {
 
-	if mongodb, ok := app.GetConfig("mongodb"); ok {
+	if mongodb, ok := app.Config("mongodb"); ok {
 		if mongoConfig, ok := mongodb.(map[interface{}]interface{}); ok {
 			if uri, ok := mongoConfig["uri"]; ok {
 				if db, ok := mongoConfig["db"]; ok {

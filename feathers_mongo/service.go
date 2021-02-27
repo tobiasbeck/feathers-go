@@ -55,6 +55,7 @@ func remapModifiers(filter map[string]interface{}) map[string]interface{} {
 	return remapped
 }
 
+// Service for mongodb which offers model validation. Use `NewService` for new instance. (another service is supposed to extend from this)
 type Service struct {
 	*feathers.BaseService
 	*feathers.ModelService
@@ -65,7 +66,7 @@ type Service struct {
 
 // Service routes
 
-func (f *Service) Find(params feathers.HookParams) (interface{}, error) {
+func (f *Service) Find(params feathers.Params) (interface{}, error) {
 	if collection, ok := f.getCollection(); ok {
 
 		result, err := collection.Find(params.CallContext, params.Query)
@@ -83,7 +84,7 @@ func (f *Service) Find(params feathers.HookParams) (interface{}, error) {
 	}
 	return nil, notReady()
 }
-func (f *Service) Get(id string, params feathers.HookParams) (interface{}, error) {
+func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 	if collection, ok := f.getCollection(); ok {
 
 		query, err := prepareFilter(id, params.Query)
@@ -101,12 +102,12 @@ func (f *Service) Get(id string, params feathers.HookParams) (interface{}, error
 			return nil, err
 		}
 
-		return returnData, err
+		return returnData[0], err
 	}
 	return nil, notReady()
 }
 
-func (f *Service) Create(data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
+func (f *Service) Create(data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	model, err := f.MapToModel(data)
 	if err != nil {
 		return nil, err
@@ -135,7 +136,7 @@ func (f *Service) Create(data map[string]interface{}, params feathers.HookParams
 	return nil, notReady()
 }
 
-func (f *Service) Update(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
+func (f *Service) Update(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	fmt.Printf("HELLO\n")
 	model, err := f.MapAndValidate(data)
 	if err != nil {
@@ -162,7 +163,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 	return nil, notReady()
 }
 
-func (f *Service) Patch(id string, data map[string]interface{}, params feathers.HookParams) (interface{}, error) {
+func (f *Service) Patch(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 
 	if collection, ok := f.getCollection(); ok {
 		query, err := prepareFilter(id, params.Query)
@@ -187,7 +188,7 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 	return nil, notReady()
 }
 
-func (f *Service) Remove(id string, params feathers.HookParams) (interface{}, error) {
+func (f *Service) Remove(id string, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
 }
 
@@ -203,12 +204,13 @@ func (f *Service) getCollection() (*mongo.Collection, bool) {
 }
 
 func (f *Service) getMongoDb() (*mongo.Database, bool) {
-	if client, ok := f.app.GetConfig("mongoDb"); ok {
+	if client, ok := f.app.Config("mongoDb"); ok {
 		return client.(*mongo.Database), true
 	}
 	return nil, false
 }
 
+// NewService creates a new mongo service struct
 func NewService(collection string, model feathers.ModelFactory, app *feathers.App) *Service {
 	return &Service{
 		BaseService:    &feathers.BaseService{},

@@ -2,12 +2,14 @@ package feathers
 
 import "context"
 
-type CallMethod string
+// RestMethod represents the method which was called
+type RestMethod string
 
-func (c CallMethod) String() string {
+func (c RestMethod) String() string {
 	return string(c)
 }
 
+// HookType is either `Before, After or Error` and describes the current type of the hook chain
 type HookType string
 
 func (c HookType) String() string {
@@ -15,15 +17,21 @@ func (c HookType) String() string {
 }
 
 const (
-	Find   CallMethod = "find"
-	Get    CallMethod = "get"
-	Create CallMethod = "create"
-	Update CallMethod = "update"
-	Patch  CallMethod = "patch"
-	Remove CallMethod = "remove"
+	// Find method retrieves multiple documents
+	Find RestMethod = "find"
+	// Get method retrieves a single document
+	Get RestMethod = "get"
+	// Create method creates a new document
+	Create RestMethod = "create"
+	// Update method replaces a whole doucmnet
+	Update RestMethod = "update"
+	// Patch method inserts new keys or updates existing keys
+	Patch RestMethod = "patch"
+	// Remove method removes a document
+	Remove RestMethod = "remove"
 )
 
-func eventFromCallMethod(method CallMethod) string {
+func eventFromCallMethod(method RestMethod) string {
 	switch method {
 	case Create:
 		return "created"
@@ -38,42 +46,55 @@ func eventFromCallMethod(method CallMethod) string {
 }
 
 const (
+	// Before Hooks are executed before the service method
 	Before HookType = "before"
-	After  HookType = "after"
-	Error  HookType = "error"
+	// After Hooks are executed after service method
+	After HookType = "after"
+	// Error Hooks are executed if a hook or service method returns a error
+	Error HookType = "error"
 )
 
-// HookParams is the params passed to functions and go-feathers hooks
-type HookParams struct {
-	Params            map[string]interface{}
-	Provider          string
-	Route             string
-	Headers           string
-	CallContext       context.Context
+// Params is the params passed to functions and go-feathers hooks
+type Params struct {
+	Params map[string]interface{}
+	// Name of provider from which is called from (empty string for server)
+	Provider string
+	// Route which is called (service name)
+	Route string
+	// Headers from client call
+	Headers map[string]string
+	// CallContext is a context passed through the whole execution. use this to derive your own contexts or pass it to calls requiring context
+	CallContext context.Context
+	// CallContextCancel is the cancel function of CallContext (called by system)
 	CallContextCancel context.CancelFunc
 	fields            map[string]interface{}
-	Query             map[string]interface{}
+	// Query conatains query fields specified by client
+	Query map[string]interface{}
 }
 
-func (hc *HookParams) GetField(key string) (interface{}, bool) {
+// Get retrieves a field from the hooks
+func (hc *Params) Get(key string) (interface{}, bool) {
 	value, ok := hc.fields[key]
 	return value, ok
 }
 
-func (hc *HookParams) SetField(key string, value interface{}) {
+// Set sets a hook field (e.g. user, additional information etc.)
+func (hc *Params) Set(key string, value interface{}) {
 	hc.fields[key] = value
 }
 
-func NewParams() *HookParams {
-	return &HookParams{
+// NewParams creates a empty params struct
+func NewParams() *Params {
+	return &Params{
 		Params: make(map[string]interface{}),
 		fields: make(map[string]interface{}),
 		Query:  make(map[string]interface{}),
 	}
 }
 
-func NewParamsQuery(query map[string]interface{}) *HookParams {
-	return &HookParams{
+// NewParamsQuery returns a new HookParms struct only containng specified hooks
+func NewParamsQuery(query map[string]interface{}) *Params {
+	return &Params{
 		Params: make(map[string]interface{}),
 		fields: make(map[string]interface{}),
 		Query:  query,
@@ -86,15 +107,18 @@ type HookContext struct {
 	Data       interface{}
 	Error      error
 	ID         string
-	Method     CallMethod
+	Method     RestMethod
 	Path       string
 	Result     interface{}
 	Service    interface{}
 	StatusCode int
 	Type       HookType
 
-	Params HookParams
+	Params Params
 }
 
+// Hook is a function which can be used to modify request params
 type Hook = func(ctx *HookContext) (*HookContext, error)
+
+// BoolHook works just like a hook but returns a boolean and cannot modify the context
 type BoolHook = func(ctx *HookContext) (bool, error)

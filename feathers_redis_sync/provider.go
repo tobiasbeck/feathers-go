@@ -15,6 +15,7 @@ type RedisPublishMessage struct {
 	Message interface{} `json:"message"`
 }
 
+//RedisSync is a provider which syncs realtime events over multiple server instances
 type RedisSync struct {
 	app    *feathers.App
 	client *redis.Client
@@ -54,9 +55,10 @@ func (rs *RedisSync) Publish(room string, event string, data interface{}, provid
 	}
 }
 
+// Configures a new RedisSync provider which synchronizes events for having multiple instances of server
 func ConfigureRedisSync(app *feathers.App, config map[string]interface{}) error {
 	app.Configure(configureRedisClient, config)
-	if client, ok := app.GetConfig("redisClient"); ok {
+	if client, ok := app.Config("redisClient"); ok {
 		provider := &RedisSync{
 			app:    app,
 			client: client.(*redis.Client),

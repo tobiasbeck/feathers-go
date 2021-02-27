@@ -22,7 +22,7 @@ const (
 type task struct {
 	caller    Caller
 	mode      taskMode
-	method    CallMethod
+	method    RestMethod
 	chainType HookType
 	hookChain []func(ctx *HookContext) (*HookContext, error) // If this is changed to []Hook it triggers #25838 in Go.
 	service   Service
@@ -46,7 +46,7 @@ func filterLocation(dataLocation locationType, location locationType, data map[s
 	return make(map[string]interface{})
 }
 
-func filterData(location locationType, method CallMethod, data map[string]interface{}) map[string]interface{} {
+func filterData(location locationType, method RestMethod, data map[string]interface{}) map[string]interface{} {
 	switch method {
 	case Find:
 		return filterLocation(dl_query, location, data)
@@ -74,13 +74,19 @@ func paramContextCancelled(ctx HookContext) bool {
 
 // ---------------
 
+// Provider handles requests and can listen for new connections
 type Provider interface {
 	Listen(port int, mux *http.ServeMux)
 	Publish(room string, event string, data interface{}, provider string)
 }
 
+// AppModules is a module which can configure the application
+/*
+Are supposed to be passed to Configure method of App
+*/
 type AppModule = func(app *App, config map[string]interface{}) error
 
+// App is the feathers-go applications instance. Instanciate through NewApp
 type App struct {
 	*EventEmitter
 	providers map[string]Provider
@@ -96,62 +102,7 @@ type App struct {
 	config map[string]interface{}
 }
 
-// Add a network provider to go-feathers app
-func (a *App) AddProvider(name string, provider Provider) error {
-	a.providers[name] = provider
-	return nil
-}
-
-func (a *App) Configure(appModule AppModule, config map[string]interface{}) {
-	err := appModule(a, config)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (a *App) AddService(name string, service Service) {
-	a.servicesLock.Lock()
-	defer a.servicesLock.Unlock()
-	a.services[name] = service
-}
-
-func (a *App) Startup(executorSize int) {
-	for i := 0; i < executorSize; i++ {
-		go a.workTask()
-	}
-}
-
-func (a *App) HandleRequest(provider string, method CallMethod, c Caller, service string, data interface{}, id string, query map[string]interface{}) {
-	if serviceInstance, ok := a.services[service]; ok {
-		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		go func() {
-			<-context.Done()
-		}()
-		initContext := HookContext{
-			App:     *a,
-			Data:    data,
-			Method:  method,
-			ID:      id,
-			Service: serviceInstance,
-			Type:    Before,
-			Params: HookParams{
-				Params:            make(map[string]interface{}),
-				Provider:          provider,
-				Route:             service,
-				CallContext:       context,
-				CallContextCancel: cancel,
-				Headers:           "",
-				fields:            make(map[string]interface{}),
-				Query:             query,
-			},
-		}
-		// fmt.Printf("Handle: Hooks %#v", serviceInstance.GetHooks())
-		a.scheduleTask(tm_hook, c, Before, serviceInstance.GetHooks().Before.GetBranch(method), serviceInstance, 0, &initContext)
-		return
-	}
-	fmt.Println("Unknown Service " + service)
-	return
-}
+// ---------------
 
 func (a *App) workTask() {
 	for doTask := range a.tasks {
@@ -190,13 +141,13 @@ func (a *App) processServiceMethod(serviceTask task) {
 		errorContext := serviceTask.context
 		errorContext.Type = Error
 		errorContext.Error = err
-		a.scheduleTask(tm_hook, serviceTask.caller, Error, serviceTask.service.GetHooks().Error.GetBranch(serviceTask.method), serviceTask.service, 0, errorContext)
+		a.scheduleTask(tm_hook, serviceTask.caller, Error, serviceTask.service.HookTree().Error.Branch(serviceTask.method), serviceTask.service, 0, errorContext)
 		return
 	}
 	afterContext := serviceTask.context
 	afterContext.Type = After
 	afterContext.Result = result
-	a.scheduleTask(tm_hook, serviceTask.caller, After, serviceTask.service.GetHooks().After.GetBranch(serviceTask.method), serviceTask.service, 0, afterContext)
+	a.scheduleTask(tm_hook, serviceTask.caller, After, serviceTask.service.HookTree().After.Branch(serviceTask.method), serviceTask.service, 0, afterContext)
 }
 
 func (a *App) scheduleTask(mode taskMode, caller Caller, chainType HookType, hookChain []func(ctx *HookContext) (*HookContext, error), service Service, position int, context *HookContext) {
@@ -251,28 +202,99 @@ func (a *App) processHook(hookTask task) {
 		}
 		errorContext.Type = Error
 		errorContext.Error = err
-		a.scheduleTask(tm_hook, hookTask.caller, Error, hookTask.service.GetHooks().Error.GetBranch(hookTask.method), hookTask.service, 0, errorContext)
+		a.scheduleTask(tm_hook, hookTask.caller, Error, hookTask.service.HookTree().Error.Branch(hookTask.method), hookTask.service, 0, errorContext)
 		return
 	}
 	a.scheduleTask(tm_hook, hookTask.caller, hookTask.chainType, hookTask.hookChain, hookTask.service, hookTask.position+1, context)
 
 }
 
-func (a *App) mergeAppHooks(chain []func(ctx *HookContext) (*HookContext, error), hookType HookType, branch CallMethod) []func(ctx *HookContext) (*HookContext, error) {
+func (a *App) mergeAppHooks(chain []func(ctx *HookContext) (*HookContext, error), hookType HookType, branch RestMethod) []func(ctx *HookContext) (*HookContext, error) {
 	if appHooks, ok := getField(&a.hooks, strings.Title(hookType.String())); ok {
 		appHookBranch := appHooks.(HooksTreeBranch)
-		appHookChain := appHookBranch.GetBranch(branch)
+		appHookChain := appHookBranch.Branch(branch)
 		return mergeHooks(appHookChain, chain)
 	}
 	return chain
 }
 
+// ---------------
+
+// AddProvider adds a network provider to the app.
+/*
+Primarily called through modules
+Providers can listen for client connections and are also handling requests
+*/
+func (a *App) AddProvider(name string, provider Provider) error {
+	a.providers[name] = provider
+	return nil
+}
+
+// Configure configures modules similar to the original feathers api.
+/*
+Modules can registers Services, Providers etc.
+*/
+func (a *App) Configure(appModule AppModule, config map[string]interface{}) {
+	err := appModule(a, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// AddService registers a new service for the application
+func (a *App) AddService(name string, service Service) {
+	a.servicesLock.Lock()
+	defer a.servicesLock.Unlock()
+	a.services[name] = service
+}
+
+// Startup setups execution pool of go routines for pipeline execution
+func (a *App) Startup(executorSize int) {
+	for i := 0; i < executorSize; i++ {
+		go a.workTask()
+	}
+}
+
+// HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
+func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data interface{}, id string, query map[string]interface{}) {
+	if serviceInstance, ok := a.services[service]; ok {
+		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		go func() {
+			<-context.Done()
+		}()
+		initContext := HookContext{
+			App:     *a,
+			Data:    data,
+			Method:  method,
+			ID:      id,
+			Service: serviceInstance,
+			Type:    Before,
+			Params: Params{
+				Params:            make(map[string]interface{}),
+				Provider:          provider,
+				Route:             service,
+				CallContext:       context,
+				CallContextCancel: cancel,
+				Headers:           make(map[string]string),
+				fields:            make(map[string]interface{}),
+				Query:             query,
+			},
+		}
+		a.scheduleTask(tm_hook, c, Before, serviceInstance.HookTree().Before.Branch(method), serviceInstance, 0, &initContext)
+		return
+	}
+	fmt.Println("Unknown Service " + service)
+	return
+}
+
+// PublishToProviders publishes a event to all providers. Each can decide what to do with the publish by themselfs
 func (a *App) PublishToProviders(room string, event string, data interface{}, publishProvider string) {
 	for _, provider := range a.providers {
 		provider.Publish(room, event, data, publishProvider)
 	}
 }
 
+// Listen makes the app listen to the port specified in the configuration
 func (a *App) Listen() {
 	if len(a.providers) == 0 {
 		panic("No providers configured")
@@ -292,8 +314,16 @@ func (a *App) Listen() {
 	log.Fatal("Could not find port (may not specified in config)")
 }
 
-func (a *App) LoadConfig(path string) error {
-	if config, err := loadConfig(path); err == nil {
+//LoadConfig loads configuration files from `./config directory`
+/* By default `default.yaml` file is loaded.
+It also looks for a environment variable named `APP_ENV`.
+If it is specified it looks for a config file named after the environment and merges it with default configuration
+Configuration can be retrieved by `GetConfig`. Keys kan be set and overwritten by `SetConfig`
+Example:
+In case of `APP_ENV=development`, looks for `development.yaml` and if it exists merges it with APP_ENV
+*/
+func (a *App) LoadConfig() error {
+	if config, err := loadConfig("./config"); err == nil {
 		a.config = config
 		return nil
 	} else {
@@ -301,19 +331,26 @@ func (a *App) LoadConfig(path string) error {
 	}
 }
 
+// SetAppHooks specifies the HookTree of the application (Similar to feathers-go)
 func (a *App) SetAppHooks(hookTree HooksTree) {
 	a.hooks = hookTree
 }
 
-func (a *App) GetConfig(key string) (interface{}, bool) {
+// Config retrieves a config key from the applications config
+func (a *App) Config(key string) (interface{}, bool) {
 	value, ok := a.config[key]
 	return value, ok
 }
 
+// SetConfig sets a config key in the applications config
 func (a *App) SetConfig(key string, value interface{}) {
 	a.config[key] = value
 }
 
+// Service returns a service instance for easy and fast calling of service methods.
+/*
+If service does not exist returns  nil
+*/
 func (a *App) Service(name string) Service {
 	if service, ok := a.services[name]; ok {
 		return service
@@ -321,6 +358,10 @@ func (a *App) Service(name string) Service {
 	return nil
 }
 
+// ServiceClass returns a service instance as an interface{}
+/*
+This is useful for parsing a service to a specific interface or struct for calling custom service methods
+*/
 func (a *App) ServiceClass(name string) (interface{}, error) {
 	if service, ok := a.services[name]; ok {
 		return service, nil
@@ -328,6 +369,7 @@ func (a *App) ServiceClass(name string) (interface{}, error) {
 	return nil, errors.New("Service does not exist")
 }
 
+// NewApp returns a new feathers-go app instance
 func NewApp() *App {
 	app := &App{
 		EventEmitter: NewEventEmitter(),

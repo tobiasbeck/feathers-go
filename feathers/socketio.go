@@ -10,7 +10,7 @@ import (
 	"github.com/tobiasbeck/feathers-go/gosf-socketio/transport"
 )
 
-func getCallMethod(method string) CallMethod {
+func getCallMethod(method string) RestMethod {
 	switch method {
 	case "create":
 		return Create
@@ -44,15 +44,18 @@ func (c *socketCaller) CallbackError(data error) {
 	close(c.errorResponse)
 }
 
+//SocketIOProvider handles socket.io connections and events
 type SocketIOProvider struct {
 	server *gosocketio.Server
 	app    *App
 }
 
+//Publish publishes a event to connections subscibed to room
 func (p *SocketIOProvider) Publish(room string, event string, data interface{}, provider string) {
 	p.server.BroadcastTo(room, event, data)
 }
 
+// Creates a new SocketIOProvider instance (use module `ConfigureSocketIOProvider` with apps `Configure` method)
 func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvider {
 	provider := new(SocketIOProvider)
 	provider.server = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
@@ -69,6 +72,7 @@ func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvi
 	return provider
 }
 
+// ConfigureSocketIOProvider registers a new socketio provider in app
 func ConfigureSocketIOProvider(app *App, config map[string]interface{}) error {
 	return app.AddProvider("socketio", NewSocketIOProvider(app, config))
 }
@@ -87,10 +91,12 @@ func (p *SocketIOProvider) listenEvent(event string) {
 	})
 }
 
-func (p *SocketIOProvider) Handle(callMethod CallMethod, caller socketCaller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
+//Handle handles a new event to a service
+func (p *SocketIOProvider) Handle(callMethod RestMethod, caller socketCaller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
 	p.app.HandleRequest("socketio", callMethod, &caller, service, data, id, query)
 }
 
+// Listen starts listening for new socket.io connections
 func (fs *SocketIOProvider) Listen(port int, serveMux *http.ServeMux) {
 	serveMux.Handle("/socket.io/", fs.server)
 }
@@ -131,25 +137,29 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 	fs.Handle(callMethod, caller, service, reqData, id, reqQuery)
 }
 
-// Publishable Service
+// PublishHandler is a function which handles a publish of a service and returns a list of rooms to publish to
 type PublishHandler = func(data interface{}, ctx HookContext) []string
 
+// PublishableService which can publish events
 type PublishableService interface {
 	RegisterPublishHandler(topic string, handler PublishHandler)
 	Publish(topic string, data interface{}, ctx HookContext) ([]string, error)
 }
 
+//BasePublishableService is a basic implementation of PublishableService
 type BasePublishableService struct {
 	events     map[string]PublishHandler
 	eventsLock sync.RWMutex
 }
 
+// RegisterPublishHandler registers a new handler for a topic
 func (s *BasePublishableService) RegisterPublishHandler(topic string, handler PublishHandler) {
 	s.eventsLock.Lock()
 	defer s.eventsLock.Unlock()
 	s.events[topic] = handler
 }
 
+// Publish calls PublishHandler if registerd and publishes data to returned topics
 func (s *BasePublishableService) Publish(topic string, data interface{}, ctx HookContext) ([]string, error) {
 	s.eventsLock.RLock()
 	defer s.eventsLock.RUnlock()

@@ -30,23 +30,27 @@ func (c *httpCaller) CallbackError(data error) {
 	close(c.response)
 }
 
+//HttpProvider is a provider for feathers-go which listens to http requests
 type HttpProvider struct {
 	server *http.ServeMux
 	app    *App
 }
 
+// NewHttpProvider creates a new http provider (injection to app happens through module: `onfigureHttpProvider`)
 func NewHttpProvider(app *App) *HttpProvider {
 	provider := new(HttpProvider)
 	provider.app = app
 	return provider
 }
 
+// Use this in combination with `App.Configure` to be able to listen for http requests
 func ConfigureHttpProvider(app *App, config map[string]interface{}) error {
 	provider := NewHttpProvider(app)
 	app.AddProvider("http", provider)
 	return nil
 }
 
+// Listen is required by Provider interface. It starts listening for incoming http requests
 func (h *HttpProvider) Listen(port int, serveMux *http.ServeMux) {
 	h.server = serveMux
 	serveMux.Handle("/", h)
@@ -56,6 +60,7 @@ func (h *HttpProvider) Listen(port int, serveMux *http.ServeMux) {
 func (p *HttpProvider) Publish(room string, event string, data interface{}, provider string) {
 }
 
+//ServceHttp is implemented from http.Handler. It handles a request
 func (h *HttpProvider) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	// Todo imporove error handling
 	serviceRequest, _ := RequestVars(*request)
@@ -123,6 +128,7 @@ func responseCode(data interface{}) int {
 	return code
 }
 
+// RequestVars parses a http request and extracts service related information
 func RequestVars(request http.Request) (requestRegistration, error) {
 	url, _ := url.Parse(request.RequestURI)
 	var serviceName, id string
