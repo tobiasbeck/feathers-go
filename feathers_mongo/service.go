@@ -10,9 +10,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func normalizeArray(data interface{}) []interface{} {
+	switch d := data.(type) {
+	case []interface{}:
+		return d
+	default:
+		return []interface{}{d}
+	}
+}
+
 func prepareFilter(id string, filter map[string]interface{}) (map[string]interface{}, error) {
 	var err error
-	filter["_id"], err = primitive.ObjectIDFromHex(id)
+	if id != "" {
+		filter["_id"], err = primitive.ObjectIDFromHex(id)
+	}
 	if err != nil {
 		return filter, err
 	}
@@ -80,7 +91,7 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 			return nil, err
 		}
 
-		return returnData, err
+		return normalizeArray(returnData), err
 	}
 	return nil, notReady()
 }
@@ -137,7 +148,6 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 }
 
 func (f *Service) Update(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
-	fmt.Printf("HELLO\n")
 	model, err := f.MapAndValidate(data)
 	if err != nil {
 		return nil, err

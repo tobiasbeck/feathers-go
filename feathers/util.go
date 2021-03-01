@@ -6,12 +6,10 @@ import (
 
 func getField(v interface{}, field string) (interface{}, bool) {
 	r := reflect.ValueOf(v)
-	// fmt.Printf("Field %s exists %#v\n", field, r)
 	if !r.Elem().FieldByName(field).IsValid() {
 		return nil, false
 	}
 	f := reflect.Indirect(r).FieldByName(field)
-	// fmt.Printf("INTERFACE: %#v", f.Interface())
 	return f.Interface(), true
 }
 

@@ -17,7 +17,7 @@ import (
 func ConfigureMongoClient(app *feathers.App, config map[string]interface{}) error {
 
 	if mongodb, ok := app.Config("mongodb"); ok {
-		if mongoConfig, ok := mongodb.(map[interface{}]interface{}); ok {
+		if mongoConfig, ok := mongodb.(map[string]interface{}); ok {
 			if uri, ok := mongoConfig["uri"]; ok {
 				if db, ok := mongoConfig["db"]; ok {
 					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

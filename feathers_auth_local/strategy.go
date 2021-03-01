@@ -1,8 +1,6 @@
 package feathers_auth_local
 
 import (
-	"fmt"
-
 	"github.com/tobiasbeck/feathers-go/feathers"
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	"github.com/tobiasbeck/feathers-go/feathers_auth"
@@ -24,15 +22,23 @@ func (s *Strategy) findEntity(username string, params feathers.Params) (map[stri
 	if service, ok := s.EntityService(); ok {
 		query := map[string]interface{}{}
 		query[config.UsernameField] = username
-		params := feathers.NewParamsQuery(query)
-		iResults, err := service.Find(*params)
+		findParams := feathers.NewParamsQuery(params.CallContext, query)
+		iResults, err := service.Find(*findParams)
 		if err != nil {
 			return nil, feathers_error.NewNotAuthenticated(err.Error(), nil)
 		}
-		results := iResults.([]map[string]interface{})
-		if len(results) >= 1 {
-			fmt.Printf("entity %#v\n", results[0])
-			return results[0], nil
+		// fmt.Printf("IRESULTS: %#v\n", iResults)
+		switch result := iResults.(type) {
+		case []map[string]interface{}:
+			if len(result) >= 1 {
+				// fmt.Printf("entity %#v\n", result[0])
+				return result[0], nil
+			}
+			return nil, feathers_error.NewNotAuthenticated("", nil)
+		case map[string]interface{}:
+			// fmt.Printf("entity %#v\n", result)
+			return result, nil
+
 		}
 		return nil, feathers_error.NewNotAuthenticated("", nil)
 	}
@@ -57,19 +63,20 @@ func (s *Strategy) Authenticate(data feathers_auth.Model, params feathers.Params
 	config := strategyConfig{}
 	s.StrategyConfig(&config)
 	defaultConfig := s.DefaultConfig()
-	fmt.Printf("data: %s, %#v\n", config.UsernameField, data)
-	user, err := s.findEntity(data.Params[config.UsernameField].(string), params)
+	// fmt.Printf("data: %s, %#v\n", config.UsernameField, data)
+	entity, err := s.findEntity(data.Params[config.UsernameField].(string), params)
 	if err != nil {
 		return nil, err
 	}
-	passwordCorrect := s.comparePassword(user, data.Params[config.PasswordField].(string))
+	// This takes around 250ms to complete (pretty slow)
+	passwordCorrect := s.comparePassword(entity, data.Params[config.PasswordField].(string))
 	if !passwordCorrect {
 		return nil, feathers_error.NewNotAuthenticated("Username or Password is incorrect", nil)
 	}
 	result := map[string]interface{}{
 		"authentication": struct{ Strategy string }{Strategy: "local"},
 	}
-	result[defaultConfig.Entity] = user
+	result[defaultConfig.Entity] = entity
 	return result, nil
 }
 

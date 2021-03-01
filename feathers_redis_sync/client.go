@@ -9,7 +9,7 @@ import (
 
 func configureRedisClient(app *feathers.App, config map[string]interface{}) error {
 	if rd, ok := app.Config("redis"); ok {
-		if redisConfig, ok := rd.(map[interface{}]interface{}); ok {
+		if redisConfig, ok := rd.(map[string]interface{}); ok {
 			if addr, ok := redisConfig["address"]; ok {
 				client := redis.NewClient(&redis.Options{
 					Addr:     addr.(string),

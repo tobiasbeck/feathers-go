@@ -2,7 +2,6 @@ package gosocketio
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sync"
 
@@ -110,7 +109,6 @@ func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
 
 	case protocol.MessageTypeAckRequest:
 		f, ok := m.findMethod(msg.Method)
-		fmt.Println("Ack message in", ok)
 		if !ok || !f.Out {
 			return
 		}

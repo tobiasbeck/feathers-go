@@ -2,7 +2,6 @@ package feathers_auth
 
 import (
 	"errors"
-	"fmt"
 
 	defaults "github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
@@ -47,7 +46,6 @@ func (bas *BaseAuthStrategy) Config(key string) (interface{}, bool) {
 }
 
 func (bas *BaseAuthStrategy) StrategyConfig(config interface{}) error {
-	fmt.Printf("name: %s, config: %#v\n ", bas.name, bas.config)
 	if configMap, ok := bas.Config(bas.name); ok {
 		mapstructure.Decode(configMap, config)
 		defaults.SetDefaults(config)

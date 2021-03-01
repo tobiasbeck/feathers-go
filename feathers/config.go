@@ -7,11 +7,11 @@ import (
 	"path"
 
 	"github.com/imdario/mergo"
-	"gopkg.in/yaml.v2"
+	"github.com/tobiasbeck/feathers-go/feathers/yaml"
 )
 
 func loadConfigFile(path string) (map[string]interface{}, error) {
-	configs := make(map[string]interface{})
+	var configs interface{}
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func loadConfigFile(path string) (map[string]interface{}, error) {
 		log.Fatal(err)
 		return nil, err
 	}
-	return configs, nil
+	return configs.(map[string]interface{}), nil
 }
 
 func loadConfig(configPath string) (map[string]interface{}, error) {

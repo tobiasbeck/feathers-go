@@ -28,7 +28,27 @@ func getCallMethod(method string) RestMethod {
 	panic("unknown server method")
 }
 
+type socketConnection struct {
+	channel *gosocketio.Channel
+}
+
+func (c *socketConnection) Join(room string) error {
+	return c.channel.Join(room)
+}
+func (c *socketConnection) Leave(room string) error {
+	return c.channel.Leave(room)
+}
+
+func (c *socketConnection) AuthEntity() interface{} {
+	return nil
+}
+
+func (C *socketConnection) IsAuthenticated() bool {
+	return false
+}
+
 type socketCaller struct {
+	connection    *socketConnection
 	channel       *gosocketio.Channel
 	response      chan<- interface{}
 	errorResponse chan<- error
@@ -42,6 +62,14 @@ func (c *socketCaller) Callback(data interface{}) {
 func (c *socketCaller) CallbackError(data error) {
 	c.errorResponse <- data
 	close(c.errorResponse)
+}
+
+func (c *socketCaller) IsSocket() bool {
+	return true
+}
+
+func (c *socketCaller) SocketConnection() Connection {
+	return c.connection
 }
 
 //SocketIOProvider handles socket.io connections and events

@@ -55,7 +55,6 @@ type HooksTreeBranch struct {
 
 func (b HooksTreeBranch) Branch(method RestMethod) []Hook {
 	key := strings.Title(method.String())
-	// fmt.Printf("checkBranch %#v\n", b)
 	if chain, ok := getField(&b, key); ok == true {
 		hc := chain.([]Hook)
 		return mergeHooks(b.All, hc)
@@ -165,5 +164,76 @@ func NewModelService(model ModelFactory) *ModelService {
 	return &ModelService{
 		Model:     model,
 		validator: validator.New(),
+	}
+}
+
+type appServiceCaller struct {
+	success chan interface{}
+	err     chan error
+}
+
+func (asc *appServiceCaller) Callback(data interface{}) {
+	asc.success <- data
+}
+func (asc *appServiceCaller) CallbackError(err error) {
+	asc.err <- err
+}
+
+func (c *appServiceCaller) IsSocket() bool {
+	return false
+}
+
+func (c *appServiceCaller) SocketConnection() Connection {
+	return nil
+}
+
+type appService struct {
+	app     *App
+	service Service
+	name    string
+}
+
+func (as *appService) Find(params Params) (interface{}, error) {
+
+	return as.callMethod(Find, map[string]interface{}{}, "", params)
+}
+
+func (as *appService) Get(id string, params Params) (interface{}, error) {
+	return as.callMethod(Get, map[string]interface{}{}, id, params)
+}
+
+func (as *appService) Create(data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(Create, data, "", params)
+}
+
+func (as *appService) Update(id string, data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(Update, data, id, params)
+}
+
+func (as *appService) Patch(id string, data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(Patch, data, id, params)
+}
+
+func (as *appService) Remove(id string, params Params) (interface{}, error) {
+	return as.callMethod(Patch, map[string]interface{}{}, id, params)
+}
+
+func (as *appService) HookTree() HooksTree {
+
+	return as.service.HookTree()
+}
+
+func (as *appService) callMethod(method RestMethod, data map[string]interface{}, id string, params Params) (interface{}, error) {
+	caller := &appServiceCaller{
+		success: make(chan interface{}, 0),
+		err:     make(chan error, 0),
+	}
+
+	as.app.handleServerServiceCall(as.name, Get, caller, data, "", params)
+	select {
+	case result := <-caller.success:
+		return result, nil
+	case err := <-caller.err:
+		return nil, err
 	}
 }

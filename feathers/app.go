@@ -137,7 +137,7 @@ func (a *App) processServiceMethod(serviceTask task) {
 		result, err = serviceTask.service.Get(serviceTask.context.ID, serviceTask.context.Params)
 	}
 	if err != nil {
-		fmt.Printf("Method returned error: %#s\n", err.Error())
+		// fmt.Printf("Method returned error: %#s\n", err.Error())
 		errorContext := serviceTask.context
 		errorContext.Type = Error
 		errorContext.Error = err
@@ -177,7 +177,9 @@ func (a *App) processHook(hookTask task) {
 			a.scheduleTask(tm_service, hookTask.caller, Before, nil, hookTask.service, 0, hookTask.context)
 		case After:
 			hookTask.caller.Callback(hookTask.context.Result)
-			hookTask.context.Params.CallContextCancel()
+			if hookTask.context.Params.CallContextCancel != nil {
+				hookTask.context.Params.CallContextCancel()
+			}
 			if service, ok := hookTask.context.Service.(PublishableService); ok {
 				if event := eventFromCallMethod(hookTask.context.Method); event != "" {
 					if rooms, err := service.Publish(event, hookTask.context.Result, *hookTask.context); err != nil {
@@ -188,7 +190,9 @@ func (a *App) processHook(hookTask task) {
 				}
 			}
 		case Error:
-			hookTask.context.Params.CallContextCancel()
+			if hookTask.context.Params.CallContextCancel != nil {
+				hookTask.context.Params.CallContextCancel()
+			}
 			hookTask.caller.CallbackError(hookTask.context.Error)
 		}
 		return
@@ -255,6 +259,25 @@ func (a *App) Startup(executorSize int) {
 	}
 }
 
+func (a *App) handleServerServiceCall(service string, method RestMethod, c Caller, data interface{}, id string, params Params) {
+	if serviceInstance, ok := a.services[service]; ok {
+		initContext := HookContext{
+			App:     *a,
+			Data:    data,
+			Method:  method,
+			Path:    service,
+			ID:      id,
+			Service: serviceInstance,
+			Type:    Before,
+			Params:  params,
+		}
+		a.scheduleTask(tm_hook, c, Before, serviceInstance.HookTree().Before.Branch(method), serviceInstance, 0, &initContext)
+		return
+	}
+	fmt.Println("Unknown Service " + service)
+	return
+}
+
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
 func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data interface{}, id string, query map[string]interface{}) {
 	if serviceInstance, ok := a.services[service]; ok {
@@ -266,6 +289,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 			App:     *a,
 			Data:    data,
 			Method:  method,
+			Path:    service,
 			ID:      id,
 			Service: serviceInstance,
 			Type:    Before,
@@ -347,13 +371,18 @@ func (a *App) SetConfig(key string, value interface{}) {
 	a.config[key] = value
 }
 
-// Service returns a service instance for easy and fast calling of service methods.
+// Service returns a a wrapped service instance of a service for easy calling methods
 /*
+Wrapping is necessary because otherwise hooks will not be triggered
 If service does not exist returns  nil
 */
 func (a *App) Service(name string) Service {
 	if service, ok := a.services[name]; ok {
-		return service
+		return &appService{
+			app:     a,
+			name:    name,
+			service: service,
+		}
 	}
 	return nil
 }

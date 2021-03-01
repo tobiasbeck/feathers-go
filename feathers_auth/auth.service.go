@@ -13,7 +13,11 @@ import (
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
-type basePayload struct {
+type hexable interface {
+	Hex() string
+}
+
+type jwtToken struct {
 	Issuer         string       `json:"iss,omitempty" mapstructure:"issuer,omitempty"`
 	Subject        string       `json:"sub,omitempty" mapstructure:"subject,omitempty"`
 	Audience       jwt.Audience `json:"aud,omitempty" mapstructure:"audience,omitempty"`
@@ -21,10 +25,6 @@ type basePayload struct {
 	NotBefore      *jwt.Time    `json:"nbf,omitempty"`
 	IssuedAt       *jwt.Time    `json:"iat,omitempty"`
 	JWTID          string       `json:"jti,omitempty"`
-}
-
-type jwtToken struct {
-	Payload basePayload
 }
 
 type AuthService struct {
@@ -40,19 +40,6 @@ func tokenType(tpe string) jwt.SignOption {
 	return func(hd *jwt.Header) {
 		hd.Type = tpe
 	}
-}
-
-func convertConfiguration(data interface{}) map[string]interface{} {
-
-	converted := make(map[string]interface{})
-
-	for key, value := range data.(map[interface{}]interface{}) {
-		switch key := key.(type) {
-		case string:
-			converted[key] = value
-		}
-	}
-	return converted
 }
 
 func (as *AuthService) Create(data map[string]interface{}, params feathers.Params) (interface{}, error) {
@@ -73,6 +60,7 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 		if err != nil {
 			return nil, feathers_error.Convert(err)
 		}
+
 		result["accessToken"] = token
 		result["authentication"] = map[string]interface{}{
 			"accessToken": token,
@@ -111,12 +99,11 @@ func Configure(app *feathers.App, config map[string]interface{}) error {
 			ModelService:   feathers.NewModelService(NewModel),
 			authStrategies: strategies.(map[string]AuthStrategy),
 		}
-		if config, ok := app.Config("authentication"); ok {
-			convertedConfig := convertConfiguration(config)
-			service.config = convertedConfig
-			fmt.Printf("Config: %#v\n", convertedConfig)
+		if appConfig, ok := app.Config("authentication"); ok {
+			appMapConfig := appConfig.(map[string]interface{})
+			service.config = appMapConfig
 			for key, strategy := range service.authStrategies {
-				strategy.SetConfiguration(convertedConfig)
+				strategy.SetConfiguration(appMapConfig)
 				strategy.SetApp(app)
 				strategy.SetName(key)
 			}
@@ -140,30 +127,40 @@ func (as *AuthService) DefaultConfig() DefaultAuthConfig {
 func (as *AuthService) createAccessToken(payload interface{}) (string, *jwtToken, error) {
 	now := time.Now()
 	defaultConfig := as.DefaultConfig()
-	if entityKey, err := lookup.LookupString(payload, defaultConfig.Entity+"._id"); err != nil {
+	if entityKey, err := lookup.LookupString(payload, defaultConfig.Entity+"._id"); err == nil {
 		if jwtConfig, ok := as.config["jwtOptions"]; ok {
-			defaultPayload := basePayload{
+
+			var stringKey string
+			switch key := entityKey.Interface().(type) {
+			case string:
+				stringKey = key
+			case hexable:
+				stringKey = key.Hex()
+			case fmt.Stringer:
+				stringKey = key.String()
+			default:
+				return "", nil, errors.New("Cannot strinigy entity key")
+			}
+
+			payload := jwtToken{
 				ExpirationTime: jwt.NumericDate(now.Add(24 * 30 * 12 * time.Hour)),
 				NotBefore:      jwt.NumericDate(now.Add(30 * time.Minute)),
 				IssuedAt:       jwt.NumericDate(now),
-				Subject:        entityKey.String(),
+				Subject:        stringKey,
 				JWTID:          Uuid4(),
 			}
-			mapstructure.Decode(jwtConfig, &defaultPayload)
-			pl := jwtToken{
-				Payload: defaultPayload,
-			}
+			mapstructure.Decode(jwtConfig, &payload)
 			var tkTypeS string
-			if tkType, err := lookup.LookupString(jwtConfig, "header.typ"); err != nil {
+			if tkType, err := lookup.Lookup(jwtConfig, "header.typ"); err != nil {
 				tkTypeS = "access"
 			} else {
 				tkTypeS = tkType.String()
 			}
-			token, err := jwt.Sign(pl, as.encryption, tokenType(tkTypeS))
+			token, err := jwt.Sign(payload, as.encryption, tokenType(tkTypeS))
 			if err != nil {
 				return "", nil, err
 			}
-			return string(token), &pl, nil
+			return string(token), &payload, nil
 		}
 		return "", nil, errors.New("No jwtOptions found")
 	} else {

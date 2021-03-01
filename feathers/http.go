@@ -30,6 +30,14 @@ func (c *httpCaller) CallbackError(data error) {
 	close(c.response)
 }
 
+func (c *httpCaller) IsSocket() bool {
+	return false
+}
+
+func (c *httpCaller) SocketConnection() Connection {
+	return nil
+}
+
 //HttpProvider is a provider for feathers-go which listens to http requests
 type HttpProvider struct {
 	server *http.ServeMux
@@ -54,7 +62,6 @@ func ConfigureHttpProvider(app *App, config map[string]interface{}) error {
 func (h *HttpProvider) Listen(port int, serveMux *http.ServeMux) {
 	h.server = serveMux
 	serveMux.Handle("/", h)
-	// fmt.Println("HTTP LISTENING")
 }
 
 func (p *HttpProvider) Publish(room string, event string, data interface{}, provider string) {
@@ -75,31 +82,31 @@ func (h *HttpProvider) ServeHTTP(response http.ResponseWriter, request *http.Req
 		case "GET":
 			var result interface{}
 			if serviceRequest.id != "" {
-				h.app.HandleRequest("http", Get, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+				h.app.HandleRequest("http", Get, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 				result = <-chanResponse
 
 			} else {
-				h.app.HandleRequest("http", Find, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+				h.app.HandleRequest("http", Find, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 				result = <-chanResponse
 			}
 
 			h.respond(response, result)
 		case "POST":
-			h.app.HandleRequest("http", Create, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+			h.app.HandleRequest("http", Create, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 			result := <-chanResponse
 			h.respond(response, result)
 
 		case "PUT":
-			h.app.HandleRequest("http", Update, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+			h.app.HandleRequest("http", Update, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 			result := <-chanResponse
 			h.respond(response, result)
 
 		case "PATCH":
-			h.app.HandleRequest("http", Patch, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+			h.app.HandleRequest("http", Patch, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 			result := <-chanResponse
 			h.respond(response, result)
 		case "DELETE":
-			h.app.HandleRequest("http", Remove, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, nil)
+			h.app.HandleRequest("http", Remove, &caller, serviceRequest.service, make(map[string]interface{}), serviceRequest.id, serviceRequest.query)
 			result := <-chanResponse
 			h.respond(response, result)
 		}
@@ -133,6 +140,13 @@ func RequestVars(request http.Request) (requestRegistration, error) {
 	url, _ := url.Parse(request.RequestURI)
 	var serviceName, id string
 	pathParts := strings.Split(url.Path, "/")
+	query := map[string]interface{}{}
+	for key, value := range url.Query() {
+		if len(value) == 0 {
+			continue
+		}
+		query[key] = value[0]
+	}
 	if len(pathParts) >= 2 {
 		serviceName = pathParts[1]
 	}
@@ -143,5 +157,6 @@ func RequestVars(request http.Request) (requestRegistration, error) {
 		method:  request.Method,
 		id:      id,
 		service: serviceName,
+		query:   query,
 	}, nil
 }

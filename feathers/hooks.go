@@ -84,20 +84,26 @@ func (hc *Params) Set(key string, value interface{}) {
 }
 
 // NewParams creates a empty params struct
-func NewParams() *Params {
+func NewParams(ctx context.Context) *Params {
+	callContext, cancel := context.WithCancel(ctx)
 	return &Params{
-		Params: make(map[string]interface{}),
-		fields: make(map[string]interface{}),
-		Query:  make(map[string]interface{}),
+		CallContext:       callContext,
+		CallContextCancel: cancel,
+		Params:            make(map[string]interface{}),
+		fields:            make(map[string]interface{}),
+		Query:             make(map[string]interface{}),
 	}
 }
 
-// NewParamsQuery returns a new HookParms struct only containng specified hooks
-func NewParamsQuery(query map[string]interface{}) *Params {
+// NewParamsQuery returns a new HookParms struct only containng specified query
+func NewParamsQuery(ctx context.Context, query map[string]interface{}) *Params {
+	callContext, cancel := context.WithCancel(ctx)
 	return &Params{
-		Params: make(map[string]interface{}),
-		fields: make(map[string]interface{}),
-		Query:  query,
+		CallContext:       callContext,
+		CallContextCancel: cancel,
+		Params:            make(map[string]interface{}),
+		fields:            make(map[string]interface{}),
+		Query:             query,
 	}
 }
 
