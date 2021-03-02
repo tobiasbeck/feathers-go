@@ -53,6 +53,14 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 		if err != nil {
 			return nil, feathers_error.Convert(err)
 		}
+
+		if params.IsSocket && params.Connection != nil {
+			defaultConfig := as.DefaultConfig()
+			fmt.Printf("CONNECTION2: %#v\n", params.Connection)
+			params.Connection.SetAuthEntity(result[defaultConfig.Entity])
+			as.app.Emit("login", params.Connection)
+		}
+
 		if _, ok := result["accessToken"]; ok {
 			return result, nil
 		}
@@ -65,12 +73,6 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 		result["authentication"] = map[string]interface{}{
 			"accessToken": token,
 			"payload":     decoded,
-		}
-
-		if params.IsSocket && params.Connection != nil {
-			defaultConfig := as.DefaultConfig()
-			params.Connection.SetAuthEntity(result[defaultConfig.Entity])
-			as.app.Emit("login", params.Connection)
 		}
 
 		return result, nil
@@ -102,6 +104,7 @@ func (as *AuthService) Update(id string, data map[string]interface{}, params fea
 func Configure(app *feathers.App, config map[string]interface{}) error {
 	if strategies, ok := config["strategies"]; ok {
 		service := &AuthService{
+			app:            app,
 			BaseService:    &feathers.BaseService{},
 			ModelService:   feathers.NewModelService(NewModel),
 			authStrategies: strategies.(map[string]AuthStrategy),
@@ -150,8 +153,8 @@ func (as *AuthService) createAccessToken(payload interface{}) (string, *jwtToken
 			}
 
 			payload := jwtToken{
-				ExpirationTime: jwt.NumericDate(now.Add(24 * 30 * 12 * time.Hour)),
-				NotBefore:      jwt.NumericDate(now.Add(30 * time.Minute)),
+				ExpirationTime: jwt.NumericDate(now.Add(24 * time.Hour)),
+				NotBefore:      jwt.NumericDate(now),
 				IssuedAt:       jwt.NumericDate(now),
 				Subject:        stringKey,
 				JWTID:          Uuid4(),

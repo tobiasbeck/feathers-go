@@ -16,6 +16,7 @@ type taskMode string
 
 const (
 	tm_hook    taskMode = "hook"
+	tm_chain   taskMode = "chain"
 	tm_service taskMode = "service"
 )
 
@@ -172,6 +173,14 @@ func (a *App) scheduleTask(mode taskMode, caller Caller, chainType HookType, hoo
 func (a *App) processHook(hookTask task) {
 	// fmt.Printf("processHook: Type: %s, Mode: %s, Chain Len: %s, Position: %s\n", hookTask.chainType, hookTask.mode, len(hookTask.hookChain), hookTask.position)
 	if len(hookTask.hookChain) == 0 || len(hookTask.hookChain) <= hookTask.position {
+		if hookTask.mode == tm_chain {
+			if hookTask.context.Error != nil {
+				hookTask.caller.CallbackError(hookTask.context.Error)
+			} else {
+				hookTask.caller.Callback(hookTask.context)
+			}
+			return
+		}
 		switch hookTask.chainType {
 		case Before:
 			a.scheduleTask(tm_service, hookTask.caller, Before, nil, hookTask.service, 0, hookTask.context)
@@ -276,6 +285,25 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 	}
 	fmt.Println("Unknown Service " + service)
 	return
+}
+
+func (a *App) HandleHookChain(hookChain []Hook, ctx *HookContext) (*HookContext, error) {
+	if serviceInstance, ok := a.services[ctx.Path]; ok {
+		caller := &appServiceCaller{
+			success: make(chan interface{}, 0),
+			err:     make(chan error, 0),
+		}
+		a.scheduleTask(tm_chain, caller, ctx.Type, hookChain, serviceInstance, 0, ctx)
+		select {
+		case result := <-caller.success:
+			return result.(*HookContext), nil
+		case err := <-caller.err:
+			return nil, err
+		}
+	}
+	fmt.Println("Unknown Service " + ctx.Path)
+
+	return nil, errors.New("Service does not exist")
 }
 
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks

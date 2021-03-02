@@ -2,6 +2,7 @@ package feathers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"sync"
@@ -95,6 +96,7 @@ func (p *SocketIOProvider) Publish(room string, event string, data interface{}, 
 // Creates a new SocketIOProvider instance (use module `ConfigureSocketIOProvider` with apps `Configure` method)
 func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvider {
 	provider := new(SocketIOProvider)
+	provider.connections = make(map[string]*socketConnection)
 	provider.server = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 	provider.app = app
 	provider.listenEvent("create")
@@ -107,6 +109,7 @@ func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvi
 		connection := &socketConnection{
 			channel: channel,
 		}
+		fmt.Printf("CONNECTION: %#v\n", connection)
 		provider.connections[channel.Id()] = connection
 		provider.app.Emit("connection", channel)
 	})
