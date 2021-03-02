@@ -116,10 +116,10 @@ func (m *ModelService) StructToMap(data interface{}) (map[string]interface{}, er
 Example:
 ````
 model := Model{}
-err := s.MapToStruct(data, &model)
+err := MapToStruct(data, &model)
 ````
 */
-func (m *ModelService) MapToStruct(data map[string]interface{}, target interface{}) error {
+func MapToStruct(data map[string]interface{}, target interface{}) error {
 	err := mapstructure.Decode(data, target)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func (m *ModelService) MapAndValidate(data map[string]interface{}) (interface{},
 
 // MapAndValidate is the same as calling `MapToStruct` and `ValidateModel` on the returned struct
 func (m *ModelService) MapAndValidateStruct(data map[string]interface{}, target interface{}) error {
-	err := m.MapToStruct(data, target)
+	err := MapToStruct(data, target)
 	if err != nil {
 		return err
 	}

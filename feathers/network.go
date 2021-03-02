@@ -13,4 +13,5 @@ type Connection interface {
 	Leave(room string) error
 	IsAuthenticated() bool
 	AuthEntity() interface{}
+	SetAuthEntity(interface{})
 }

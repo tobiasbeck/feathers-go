@@ -66,6 +66,13 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 			"accessToken": token,
 			"payload":     decoded,
 		}
+
+		if params.IsSocket && params.Connection != nil {
+			defaultConfig := as.DefaultConfig()
+			params.Connection.SetAuthEntity(result[defaultConfig.Entity])
+			as.app.Emit("login", params.Connection)
+		}
+
 		return result, nil
 	}
 	return nil, feathers_error.NewGeneralError("Strategy "+model.Strategy+" not registered", nil)

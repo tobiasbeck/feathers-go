@@ -61,6 +61,10 @@ type Params struct {
 	Provider string
 	// Route which is called (service name)
 	Route string
+	//Caller instance of who has called this
+	Connection Connection
+	// True if connection is socket based
+	IsSocket bool
 	// Headers from client call
 	Headers map[string]string
 	// CallContext is a context passed through the whole execution. use this to derive your own contexts or pass it to calls requiring context

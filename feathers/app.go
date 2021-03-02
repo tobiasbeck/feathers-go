@@ -298,6 +298,8 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 				Provider:          provider,
 				Route:             service,
 				CallContext:       context,
+				Connection:        c.SocketConnection(),
+				IsSocket:          c.IsSocket(),
 				CallContextCancel: cancel,
 				Headers:           make(map[string]string),
 				fields:            make(map[string]interface{}),

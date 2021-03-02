@@ -10,7 +10,7 @@ import (
 	"github.com/tobiasbeck/feathers-go/gosf-socketio/transport"
 )
 
-func getCallMethod(method string) RestMethod {
+func stringToCallmethod(method string) RestMethod {
 	switch method {
 	case "create":
 		return Create
@@ -29,7 +29,8 @@ func getCallMethod(method string) RestMethod {
 }
 
 type socketConnection struct {
-	channel *gosocketio.Channel
+	channel    *gosocketio.Channel
+	authEntity interface{}
 }
 
 func (c *socketConnection) Join(room string) error {
@@ -40,11 +41,18 @@ func (c *socketConnection) Leave(room string) error {
 }
 
 func (c *socketConnection) AuthEntity() interface{} {
-	return nil
+	return c.authEntity
 }
 
-func (C *socketConnection) IsAuthenticated() bool {
-	return false
+func (c *socketConnection) SetAuthEntity(entity interface{}) {
+	if c.authEntity != nil {
+		return
+	}
+	c.authEntity = entity
+}
+
+func (c *socketConnection) IsAuthenticated() bool {
+	return c.authEntity != nil
 }
 
 type socketCaller struct {
@@ -74,8 +82,9 @@ func (c *socketCaller) SocketConnection() Connection {
 
 //SocketIOProvider handles socket.io connections and events
 type SocketIOProvider struct {
-	server *gosocketio.Server
-	app    *App
+	server      *gosocketio.Server
+	app         *App
+	connections map[string]*socketConnection
 }
 
 //Publish publishes a event to connections subscibed to room
@@ -94,8 +103,18 @@ func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvi
 	provider.listenEvent("remove")
 	provider.listenEvent("find")
 	provider.listenEvent("get")
-	provider.server.On(gosocketio.OnConnection, func(channel interface{}) {
+	provider.server.On(gosocketio.OnConnection, func(channel *gosocketio.Channel) {
+		connection := &socketConnection{
+			channel: channel,
+		}
+		provider.connections[channel.Id()] = connection
 		provider.app.Emit("connection", channel)
+	})
+	provider.server.On(gosocketio.OnDisconnection, func(channel *gosocketio.Channel) {
+		if _, ok := provider.connections[channel.Id()]; ok {
+			delete(provider.connections, channel.Id())
+		}
+		provider.app.Emit("disconnect", channel)
 	})
 	return provider
 }
@@ -134,14 +153,23 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 	if serviceType.String() != "string" {
 		return
 	}
+
+	connection, ok := fs.connections[c.Id()]
+
+	if !ok {
+		responseErr <- errors.New("Connection is not registered")
+		return
+	}
+
 	service := data[0].(string)
 	caller := socketCaller{
 		channel:       c,
+		connection:    connection,
 		response:      response,
 		errorResponse: responseErr,
 	}
 
-	callMethod := getCallMethod(event)
+	callMethod := stringToCallmethod(event)
 	var reqData map[string]interface{}
 	reqQuery := make(map[string]interface{})
 	var id string

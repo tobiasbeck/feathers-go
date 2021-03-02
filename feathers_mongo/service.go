@@ -78,7 +78,7 @@ type Service struct {
 // Service routes
 
 func (f *Service) Find(params feathers.Params) (interface{}, error) {
-	if collection, ok := f.getCollection(); ok {
+	if collection, ok := f.collection(); ok {
 
 		result, err := collection.Find(params.CallContext, params.Query)
 		if err != nil {
@@ -96,7 +96,7 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 	return nil, notReady()
 }
 func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
-	if collection, ok := f.getCollection(); ok {
+	if collection, ok := f.collection(); ok {
 
 		query, err := prepareFilter(id, params.Query)
 		if err != nil {
@@ -129,7 +129,7 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 		return nil, err
 	}
 
-	if collection, ok := f.getCollection(); ok {
+	if collection, ok := f.collection(); ok {
 		result, err := collection.InsertOne(params.CallContext, model)
 		if err != nil {
 			return nil, err
@@ -153,7 +153,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 		return nil, err
 	}
 
-	if collection, ok := f.getCollection(); ok {
+	if collection, ok := f.collection(); ok {
 		query, err := prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
@@ -175,7 +175,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 
 func (f *Service) Patch(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 
-	if collection, ok := f.getCollection(); ok {
+	if collection, ok := f.collection(); ok {
 		query, err := prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
@@ -206,14 +206,14 @@ func notReady() error {
 	return feathers_error.NewGeneralError("Service not ready", nil)
 }
 
-func (f *Service) getCollection() (*mongo.Collection, bool) {
-	if db, ok := f.getMongoDb(); ok {
+func (f *Service) collection() (*mongo.Collection, bool) {
+	if db, ok := f.mongoDb(); ok {
 		return db.Collection(f.CollectionName), true
 	}
 	return nil, false
 }
 
-func (f *Service) getMongoDb() (*mongo.Database, bool) {
+func (f *Service) mongoDb() (*mongo.Database, bool) {
 	if client, ok := f.app.Config("mongoDb"); ok {
 		return client.(*mongo.Database), true
 	}
