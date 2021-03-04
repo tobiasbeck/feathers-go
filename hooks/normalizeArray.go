@@ -1,15 +1,19 @@
 package hooks
 
-func NormalizeSlice(data interface{}) ([]interface{}, bool) {
-	switch d := data.(type) {
-	case []interface{}:
-		return d, false
-	default:
-		return []interface{}{d}, true
+import (
+	"reflect"
+)
+
+func NormalizeSlice(data interface{}) ([]map[string]interface{}, bool) {
+	r := reflect.ValueOf(data)
+	if r.Kind() == reflect.Slice {
+		return data.([]map[string]interface{}), false
+	} else {
+		return []map[string]interface{}{data.(map[string]interface{})}, true
 	}
 }
 
-func UnormalizeSlice(data []interface{}, normalized bool) interface{} {
+func UnormalizeSlice(data []map[string]interface{}, normalized bool) interface{} {
 	if normalized && len(data) > 0 {
 		return data[0]
 	}

@@ -14,10 +14,8 @@ func Discard(fields ...string) feathers.Hook {
 		items, normalized := GetItemsNormalized(ctx)
 
 		for _, item := range items {
-			if mapData, ok := item.(map[string]interface{}); ok {
-				for _, field := range fields {
-					delete(mapData, field)
-				}
+			for _, field := range fields {
+				delete(item, field)
 			}
 		}
 
