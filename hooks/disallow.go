@@ -17,7 +17,7 @@ func Disallow(providers ...string) feathers.Hook {
 		}
 
 		for _, provider := range providers {
-			if provider == "server" && ctx.Params.Provider == "" || provider == "external" && ctx.Params.Provider != "" || provider == ctx.Params.Provider {
+			if (provider == "server" && ctx.Params.Provider == "") || (provider == "external" && ctx.Params.Provider != "") || provider == ctx.Params.Provider {
 				return nil, err
 			}
 		}
