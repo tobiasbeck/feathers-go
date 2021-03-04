@@ -2,6 +2,7 @@ package feathers_mongo
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/tobiasbeck/feathers-go/feathers"
@@ -129,6 +130,10 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 		return nil, err
 	}
 
+	if timestampable, ok := model.(Timestampable); ok {
+		timestampable.SetCreatedAt()
+	}
+
 	if collection, ok := f.collection(); ok {
 		result, err := collection.InsertOne(params.CallContext, model)
 		if err != nil {
@@ -151,6 +156,10 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 	model, err := f.MapAndValidate(data)
 	if err != nil {
 		return nil, err
+	}
+
+	if timestampable, ok := model.(Timestampable); ok {
+		timestampable.SetUpdatedAt()
 	}
 
 	if collection, ok := f.collection(); ok {
@@ -180,6 +189,7 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 		if err != nil {
 			return nil, err
 		}
+		data["updatedAt"] = time.Now()
 		replacement := remapModifiers(data)
 		fmt.Printf("replacement: %#v\n", replacement)
 

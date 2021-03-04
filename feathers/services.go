@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator"
+	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -98,6 +99,7 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
+	defaults.SetDefaults(model)
 	return model, nil
 }
 
@@ -124,6 +126,7 @@ func MapToStruct(data map[string]interface{}, target interface{}) error {
 	if err != nil {
 		return err
 	}
+	defaults.SetDefaults(target)
 	return nil
 }
 
