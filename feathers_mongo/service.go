@@ -113,7 +113,9 @@ func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		if len(returnData) <= 0 {
+			return nil, feathers_error.NewNotFound(fmt.Sprintf("Entity with id %s not found", id), nil)
+		}
 		return returnData[0], err
 	}
 	return nil, notReady()

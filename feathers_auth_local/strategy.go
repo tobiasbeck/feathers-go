@@ -30,7 +30,7 @@ func (s *Strategy) findEntity(username string, params feathers.Params) (map[stri
 		// fmt.Printf("IRESULTS: %#v\n", iResults)
 		switch result := iResults.(type) {
 		case []map[string]interface{}:
-			if len(result) >= 1 {
+			if len(result) > 0 {
 				// fmt.Printf("entity %#v\n", result[0])
 				return result[0], nil
 			}
