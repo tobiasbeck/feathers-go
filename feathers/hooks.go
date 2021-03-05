@@ -84,6 +84,9 @@ func (hc *Params) Get(key string) (interface{}, bool) {
 
 // Set sets a hook field (e.g. user, additional information etc.)
 func (hc *Params) Set(key string, value interface{}) {
+	if hc.fields == nil {
+		hc.fields = map[string]interface{}{}
+	}
 	hc.fields[key] = value
 }
 
