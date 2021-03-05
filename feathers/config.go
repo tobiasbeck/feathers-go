@@ -10,7 +10,8 @@ import (
 	"github.com/tobiasbeck/feathers-go/feathers/yaml"
 )
 
-func loadConfigFile(path string) (map[string]interface{}, error) {
+// LoadConfigFile loads a yaml config file
+func LoadConfigFile(path string) (map[string]interface{}, error) {
 	var configs interface{}
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -24,12 +25,12 @@ func loadConfigFile(path string) (map[string]interface{}, error) {
 }
 
 func loadConfig(configPath string) (map[string]interface{}, error) {
-	defaultConfig, err := loadConfigFile(path.Join(configPath, "default.yaml"))
+	defaultConfig, err := LoadConfigFile(path.Join(configPath, "default.yaml"))
 	if err != nil {
 		return nil, err
 	}
 	if env, ok := os.LookupEnv("APP_ENV"); ok {
-		envConfig, err := loadConfigFile(path.Join(configPath, env+".yaml"))
+		envConfig, err := LoadConfigFile(path.Join(configPath, env+".yaml"))
 		if err != nil {
 			return defaultConfig, nil
 		}
