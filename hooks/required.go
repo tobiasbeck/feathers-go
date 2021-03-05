@@ -2,12 +2,14 @@ package hooks
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/tobiasbeck/feathers-go/feathers"
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
-func PreventChanges(retError bool, fields ...string) feathers.Hook {
+// Required checks if all passed fields are set
+func Required(fields ...string) feathers.Hook {
 	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
 		if ctx.Type == feathers.Before {
 			err := CheckContext(ctx, "discard", []feathers.HookType{"before", "after"}, []feathers.RestMethod{"create", "update", "patch"})
@@ -20,12 +22,15 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 
 		for _, item := range items {
 			for _, field := range fields {
-				if _, ok := item[field]; ok {
-					if retError {
-						return nil, feathers_error.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
+				err := feathers_error.NewBadRequest(fmt.Sprintf("Field %s does not exist. (preventChanges)", field), nil)
+				if val, ok := item[field]; ok {
+					r := reflect.ValueOf(val)
+					if r.IsZero() {
+						return nil, err
 					}
-					delete(item, field)
 
+				} else {
+					return nil, err
 				}
 			}
 		}

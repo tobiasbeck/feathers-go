@@ -1,13 +1,13 @@
 package hooks
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
-func PreventChanges(retError bool, fields ...string) feathers.Hook {
+// SetNow sets fields to Now value (Time.Now()).
+func SetNow(fields ...string) feathers.Hook {
 	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
 		if ctx.Type == feathers.Before {
 			err := CheckContext(ctx, "discard", []feathers.HookType{"before", "after"}, []feathers.RestMethod{"create", "update", "patch"})
@@ -20,13 +20,7 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 
 		for _, item := range items {
 			for _, field := range fields {
-				if _, ok := item[field]; ok {
-					if retError {
-						return nil, feathers_error.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
-					}
-					delete(item, field)
-
-				}
+				item[field] = time.Now()
 			}
 		}
 
