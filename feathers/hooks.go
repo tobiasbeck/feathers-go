@@ -74,6 +74,8 @@ type Params struct {
 	fields            map[string]interface{}
 	// Query conatains query fields specified by client
 	Query map[string]interface{}
+
+	Authenticated bool
 }
 
 // Get retrieves a field from the hooks

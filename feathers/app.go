@@ -313,6 +313,13 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 		go func() {
 			<-context.Done()
 		}()
+
+		authenticated := false
+
+		if connection := c.SocketConnection(); connection != nil {
+			authenticated = connection.IsAuthenticated()
+		}
+
 		initContext := HookContext{
 			App:     *a,
 			Data:    data,
@@ -332,6 +339,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 				Headers:           make(map[string]string),
 				fields:            make(map[string]interface{}),
 				Query:             query,
+				Authenticated:     authenticated,
 			},
 		}
 		a.scheduleTask(tm_hook, c, Before, serviceInstance.HookTree().Before.Branch(method), serviceInstance, 0, &initContext)
