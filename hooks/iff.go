@@ -12,7 +12,13 @@ func Iff(pred feathers.BoolHook, trueHooks ...feathers.Hook) feathers.Hook {
 			return ctx, nil
 		}
 
-		return ctx.App.HandleHookChain(trueHooks, ctx)
+		for _, hook := range trueHooks {
+			ctx, err = hook(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return ctx, nil
 	}
 }
 
@@ -23,10 +29,22 @@ func IffElse(pred feathers.BoolHook, trueHooks []feathers.Hook, falseHooks []fea
 			return nil, err
 		}
 		if !ok {
-			return ctx.App.HandleHookChain(falseHooks, ctx)
+			for _, hook := range falseHooks {
+				ctx, err = hook(ctx)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return ctx, nil
 		}
 
-		return ctx.App.HandleHookChain(trueHooks, ctx)
+		for _, hook := range trueHooks {
+			ctx, err = hook(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return ctx, nil
 	}
 }
 
@@ -40,6 +58,12 @@ func IffNot(pred feathers.BoolHook, trueHooks ...feathers.Hook) feathers.Hook {
 			return ctx, nil
 		}
 
-		return ctx.App.HandleHookChain(trueHooks, ctx)
+		for _, hook := range trueHooks {
+			ctx, err = hook(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return ctx, nil
 	}
 }

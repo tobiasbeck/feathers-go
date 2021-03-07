@@ -73,6 +73,15 @@ type HooksTree struct {
 	Error HooksTreeBranch
 }
 
+func (t HooksTree) Branch(branchType HookType) HooksTreeBranch {
+	key := strings.Title(branchType.String())
+	if branch, ok := getField(&t, key); ok == true {
+		hc := branch.(HooksTreeBranch)
+		return hc
+	}
+	panic("unknown hook tree")
+}
+
 // BaseService (every service should extend from this)
 type BaseService struct {
 	Hooks HooksTree

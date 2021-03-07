@@ -96,131 +96,12 @@ type App struct {
 
 	services map[string]Service
 
-	tasks chan task
-
 	servicesLock sync.RWMutex
 
 	config map[string]interface{}
 }
 
 // ---------------
-
-func (a *App) workTask() {
-	for doTask := range a.tasks {
-		if paramContextCancelled(*doTask.context) {
-			return
-		}
-		switch doTask.mode {
-		case tm_hook:
-			a.processHook(doTask)
-		case tm_service:
-			a.processServiceMethod(doTask)
-		}
-	}
-}
-
-func (a *App) processServiceMethod(serviceTask task) {
-	// serviceTask.context.Params.CallContext.
-	var result interface{}
-	var err error
-	switch serviceTask.method {
-	case Create:
-		result, err = serviceTask.service.Create(serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
-	case Update:
-		result, err = serviceTask.service.Update(serviceTask.context.ID, serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
-	case Patch:
-		result, err = serviceTask.service.Patch(serviceTask.context.ID, serviceTask.context.Data.(map[string]interface{}), serviceTask.context.Params)
-	case Remove:
-		result, err = serviceTask.service.Remove(serviceTask.context.ID, serviceTask.context.Params)
-	case Find:
-		result, err = serviceTask.service.Find(serviceTask.context.Params)
-	case Get:
-		result, err = serviceTask.service.Get(serviceTask.context.ID, serviceTask.context.Params)
-	}
-	if err != nil {
-		// fmt.Printf("Method returned error: %#s\n", err.Error())
-		errorContext := serviceTask.context
-		errorContext.Type = Error
-		errorContext.Error = err
-		a.scheduleTask(tm_hook, serviceTask.caller, Error, serviceTask.service.HookTree().Error.Branch(serviceTask.method), serviceTask.service, 0, errorContext)
-		return
-	}
-	afterContext := serviceTask.context
-	afterContext.Type = After
-	afterContext.Result = result
-	a.scheduleTask(tm_hook, serviceTask.caller, After, serviceTask.service.HookTree().After.Branch(serviceTask.method), serviceTask.service, 0, afterContext)
-}
-
-func (a *App) scheduleTask(mode taskMode, caller Caller, chainType HookType, hookChain []func(ctx *HookContext) (*HookContext, error), service Service, position int, context *HookContext) {
-	var mergedChain []func(ctx *HookContext) (*HookContext, error)
-	if position == 0 {
-		mergedChain = a.mergeAppHooks(hookChain, context.Type, context.Method)
-	} else {
-		mergedChain = hookChain
-	}
-	a.tasks <- task{
-		mode:      mode,
-		method:    context.Method,
-		caller:    caller,
-		chainType: chainType,
-		hookChain: mergedChain,
-		service:   service,
-		position:  position,
-		context:   context,
-	}
-}
-
-func (a *App) processHook(hookTask task) {
-	// fmt.Printf("processHook: Type: %s, Mode: %s, Chain Len: %s, Position: %s\n", hookTask.chainType, hookTask.mode, len(hookTask.hookChain), hookTask.position)
-	if len(hookTask.hookChain) == 0 || len(hookTask.hookChain) <= hookTask.position {
-		if hookTask.mode == tm_chain {
-			if hookTask.context.Error != nil {
-				hookTask.caller.CallbackError(hookTask.context.Error)
-			} else {
-				hookTask.caller.Callback(hookTask.context)
-			}
-			return
-		}
-		switch hookTask.chainType {
-		case Before:
-			a.scheduleTask(tm_service, hookTask.caller, Before, nil, hookTask.service, 0, hookTask.context)
-		case After:
-			hookTask.caller.Callback(hookTask.context.Result)
-			if hookTask.context.Params.CallContextCancel != nil {
-				hookTask.context.Params.CallContextCancel()
-			}
-			if service, ok := hookTask.context.Service.(PublishableService); ok {
-				if event := eventFromCallMethod(hookTask.context.Method); event != "" {
-					if rooms, err := service.Publish(event, hookTask.context.Result, *hookTask.context); err != nil {
-						for _, room := range rooms {
-							a.PublishToProviders(room, event, hookTask.context.Result, hookTask.context.Params.Provider)
-						}
-					}
-				}
-			}
-		case Error:
-			if hookTask.context.Params.CallContextCancel != nil {
-				hookTask.context.Params.CallContextCancel()
-			}
-			hookTask.caller.CallbackError(hookTask.context.Error)
-		}
-		return
-	}
-	hook := hookTask.hookChain[hookTask.position]
-	context, err := hook(hookTask.context)
-	if err != nil {
-		errorContext := context
-		if errorContext == nil {
-			errorContext = hookTask.context
-		}
-		errorContext.Type = Error
-		errorContext.Error = err
-		a.scheduleTask(tm_hook, hookTask.caller, Error, hookTask.service.HookTree().Error.Branch(hookTask.method), hookTask.service, 0, errorContext)
-		return
-	}
-	a.scheduleTask(tm_hook, hookTask.caller, hookTask.chainType, hookTask.hookChain, hookTask.service, hookTask.position+1, context)
-
-}
 
 func (a *App) mergeAppHooks(chain []func(ctx *HookContext) (*HookContext, error), hookType HookType, branch RestMethod) []func(ctx *HookContext) (*HookContext, error) {
 	if appHooks, ok := getField(&a.hooks, strings.Title(hookType.String())); ok {
@@ -262,11 +143,11 @@ func (a *App) AddService(name string, service Service) {
 }
 
 // Startup setups execution pool of go routines for pipeline execution
-func (a *App) Startup(executorSize int) {
-	for i := 0; i < executorSize; i++ {
-		go a.workTask()
-	}
-}
+// func (a *App) Startup(executorSize int) {
+// 	for i := 0; i < executorSize; i++ {
+// 		go a.workTask()
+// 	}
+// }
 
 func (a *App) handleServerServiceCall(service string, method RestMethod, c Caller, data interface{}, id string, params Params) {
 	if serviceInstance, ok := a.services[service]; ok {
@@ -280,30 +161,11 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 			Type:    Before,
 			Params:  params,
 		}
-		a.scheduleTask(tm_hook, c, Before, serviceInstance.HookTree().Before.Branch(method), serviceInstance, 0, &initContext)
+		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
 	fmt.Println("Unknown Service " + service)
 	return
-}
-
-func (a *App) HandleHookChain(hookChain []Hook, ctx *HookContext) (*HookContext, error) {
-	if serviceInstance, ok := a.services[ctx.Path]; ok {
-		caller := &appServiceCaller{
-			success: make(chan interface{}, 0),
-			err:     make(chan error, 0),
-		}
-		a.scheduleTask(tm_chain, caller, ctx.Type, hookChain, serviceInstance, 0, ctx)
-		select {
-		case result := <-caller.success:
-			return result.(*HookContext), nil
-		case err := <-caller.err:
-			return nil, err
-		}
-	}
-	fmt.Println("Unknown Service " + ctx.Path)
-
-	return nil, errors.New("Service does not exist")
 }
 
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
@@ -342,11 +204,80 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 				Authenticated:     authenticated,
 			},
 		}
-		a.scheduleTask(tm_hook, c, Before, serviceInstance.HookTree().Before.Branch(method), serviceInstance, 0, &initContext)
+		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
 	fmt.Println("Unknown Service " + service)
 	return
+}
+
+func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
+	// defer func() {
+	// 	if err := recover(); err != nil {
+	// 		fmt.Printf("GOT PANIC %#v\n", err)
+	// 		//c.CallbackError(err.(error))
+	// 	}
+	// }()
+	var err error
+	// Before
+	origCtx := ctx
+	ctx, err = a.handleHookChain(ctx, Before, service)
+	if err != nil {
+		a.handlePipelineError(err, origCtx, service, c)
+		return
+	}
+	var result interface{}
+	switch ctx.Method {
+	case Create:
+		result, err = service.Create(ctx.Data.(map[string]interface{}), ctx.Params)
+	case Update:
+		result, err = service.Update(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+	case Patch:
+		result, err = service.Patch(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+	case Remove:
+		result, err = service.Remove(ctx.ID, ctx.Params)
+	case Find:
+		result, err = service.Find(ctx.Params)
+	case Get:
+		result, err = service.Get(ctx.ID, ctx.Params)
+	}
+	if err != nil {
+		a.handlePipelineError(err, ctx, service, c)
+		return
+	}
+	ctx.Result = result
+	ctx, err = a.handleHookChain(ctx, After, service)
+	if err != nil {
+		a.handlePipelineError(err, origCtx, service, c)
+		return
+	}
+	c.Callback(ctx.Result)
+}
+
+func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Service) (*HookContext, error) {
+	tree := service.HookTree()
+	branch := tree.Branch(chainType)
+	chain := branch.Branch(ctx.Method)
+	mergedChain := a.mergeAppHooks(chain, chainType, ctx.Method)
+	loopCtx := ctx
+	for _, hook := range mergedChain {
+		result, err := hook(loopCtx)
+		if err != nil {
+			return nil, err
+		}
+		loopCtx = result
+	}
+
+	return loopCtx, nil
+}
+
+func (a *App) handlePipelineError(err error, ctx *HookContext, service Service, c Caller) {
+	ctx, chainErr := a.handleHookChain(ctx, Error, service)
+	if chainErr != nil {
+		c.CallbackError(chainErr)
+		return
+	}
+	c.CallbackError(err)
 }
 
 // PublishToProviders publishes a event to all providers. Each can decide what to do with the publish by themselfs
@@ -442,7 +373,6 @@ func NewApp() *App {
 		EventEmitter: NewEventEmitter(),
 		providers:    make(map[string]Provider, 0),
 		services:     make(map[string]Service, 0),
-		tasks:        make(chan task, 500),
 		hooks:        HooksTree{},
 		config:       make(map[string]interface{}),
 	}
