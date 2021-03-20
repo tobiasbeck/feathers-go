@@ -226,26 +226,28 @@ func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
 		a.handlePipelineError(err, origCtx, service, c)
 		return
 	}
-	var result interface{}
-	switch ctx.Method {
-	case Create:
-		result, err = service.Create(ctx.Data.(map[string]interface{}), ctx.Params)
-	case Update:
-		result, err = service.Update(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
-	case Patch:
-		result, err = service.Patch(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
-	case Remove:
-		result, err = service.Remove(ctx.ID, ctx.Params)
-	case Find:
-		result, err = service.Find(ctx.Params)
-	case Get:
-		result, err = service.Get(ctx.ID, ctx.Params)
+	if ctx.Result == nil {
+		var result interface{}
+		switch ctx.Method {
+		case Create:
+			result, err = service.Create(ctx.Data.(map[string]interface{}), ctx.Params)
+		case Update:
+			result, err = service.Update(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+		case Patch:
+			result, err = service.Patch(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+		case Remove:
+			result, err = service.Remove(ctx.ID, ctx.Params)
+		case Find:
+			result, err = service.Find(ctx.Params)
+		case Get:
+			result, err = service.Get(ctx.ID, ctx.Params)
+		}
+		if err != nil {
+			a.handlePipelineError(err, ctx, service, c)
+			return
+		}
+		ctx.Result = result
 	}
-	if err != nil {
-		a.handlePipelineError(err, ctx, service, c)
-		return
-	}
-	ctx.Result = result
 	ctx, err = a.handleHookChain(ctx, After, service)
 	if err != nil {
 		a.handlePipelineError(err, origCtx, service, c)
