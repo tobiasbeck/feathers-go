@@ -17,5 +17,6 @@ func Join(joinConfig map[string]JoinOperator) feathers.Hook {
 			}
 		}
 		ReplaceItemsNormalized(ctx, data, normalized)
+		return ctx, nil
 	}
 }
