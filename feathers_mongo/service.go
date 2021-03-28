@@ -2,6 +2,7 @@ package feathers_mongo
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -11,13 +12,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func normalizeArray(data interface{}) []interface{} {
-	switch d := data.(type) {
-	case []interface{}:
-		return d
-	default:
-		return []interface{}{d}
+func normalizeArray(data interface{}) interface{} {
+	if reflect.TypeOf(data).Kind() == reflect.Slice {
+		return data
 	}
+	return []interface{}{data}
 }
 
 func prepareFilter(id string, filter map[string]interface{}) (map[string]interface{}, error) {
