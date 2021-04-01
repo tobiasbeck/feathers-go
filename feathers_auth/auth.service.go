@@ -56,7 +56,6 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 
 		if params.IsSocket && params.Connection != nil {
 			defaultConfig := as.DefaultConfig()
-			fmt.Printf("CONNECTION2: %#v\n", params.Connection)
 			params.Connection.SetAuthEntity(result[defaultConfig.Entity])
 			as.app.Emit("login", params.Connection)
 		}

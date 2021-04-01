@@ -241,7 +241,7 @@ func (as *appService) callMethod(method RestMethod, data map[string]interface{},
 		err:     make(chan error, 0),
 	}
 
-	as.app.handleServerServiceCall(as.name, Get, caller, data, id, params)
+	as.app.handleServerServiceCall(as.name, method, caller, data, id, params)
 	select {
 	case result := <-caller.success:
 		return result, nil

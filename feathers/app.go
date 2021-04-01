@@ -182,6 +182,14 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 			authenticated = connection.IsAuthenticated()
 		}
 
+		var user map[string]interface{}
+		if connection := c.SocketConnection(); connection != nil {
+			if connection.IsAuthenticated() {
+				user = connection.AuthEntity().(map[string]interface{})
+			}
+
+		}
+
 		initContext := HookContext{
 			App:     *a,
 			Data:    data,
@@ -197,6 +205,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 				CallContext:       context,
 				Connection:        c.SocketConnection(),
 				IsSocket:          c.IsSocket(),
+				User:              user,
 				CallContextCancel: cancel,
 				Headers:           make(map[string]string),
 				fields:            make(map[string]interface{}),
@@ -261,6 +270,7 @@ func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Serv
 	branch := tree.Branch(chainType)
 	chain := branch.Branch(ctx.Method)
 	mergedChain := a.mergeAppHooks(chain, chainType, ctx.Method)
+	ctx.Type = chainType
 	loopCtx := ctx
 	for _, hook := range mergedChain {
 		result, err := hook(loopCtx)
@@ -274,6 +284,7 @@ func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Serv
 }
 
 func (a *App) handlePipelineError(err error, ctx *HookContext, service Service, c Caller) {
+	ctx.Error = err
 	ctx, chainErr := a.handleHookChain(ctx, Error, service)
 	if chainErr != nil {
 		c.CallbackError(chainErr)

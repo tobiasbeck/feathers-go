@@ -75,6 +75,8 @@ type Params struct {
 	// Query conatains query fields specified by client
 	Query map[string]interface{}
 
+	User map[string]interface{}
+
 	Authenticated bool
 }
 

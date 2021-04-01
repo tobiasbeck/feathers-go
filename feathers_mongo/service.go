@@ -91,6 +91,10 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 			return nil, err
 		}
 
+		if returnData == nil {
+			returnData = []map[string]interface{}{}
+		}
+
 		return normalizeArray(returnData), err
 	}
 	return nil, notReady()
