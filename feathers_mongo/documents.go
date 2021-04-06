@@ -1,6 +1,14 @@
 package feathers_mongo
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type Document struct {
+	ID primitive.ObjectID `bson:"_id" mapstructure:"_id"`
+}
 
 type Timestampable interface {
 	SetCreatedAt()

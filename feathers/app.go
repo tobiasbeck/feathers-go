@@ -263,6 +263,17 @@ func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
 		return
 	}
 	c.Callback(ctx.Result)
+
+	//Afterwards trigger updates
+	if service, ok := ctx.Service.(PublishableService); ok {
+		if event := eventFromCallMethod(ctx.Method); event != "" {
+			if rooms, err := service.Publish(event, ctx.Result, *ctx); err != nil {
+				for _, room := range rooms {
+					a.PublishToProviders(room, event, ctx.Result, ctx.Params.Provider)
+				}
+			}
+		}
+	}
 }
 
 func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Service) (*HookContext, error) {
