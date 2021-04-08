@@ -2,7 +2,6 @@ package feathers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"reflect"
 	"sync"
@@ -109,7 +108,6 @@ func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvi
 		connection := &socketConnection{
 			channel: channel,
 		}
-		fmt.Printf("CONNECTION: %#v\n", connection)
 		provider.connections[channel.Id()] = connection
 		provider.app.Emit("connection", channel)
 	})

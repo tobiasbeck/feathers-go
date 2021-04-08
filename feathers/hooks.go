@@ -94,6 +94,16 @@ func (hc *Params) Set(key string, value interface{}) {
 	hc.fields[key] = value
 }
 
+// WithQuery creates new Params with given query only passing same CallContext
+func (p *Params) WithQuery(query map[string]interface{}) *Params {
+	return NewParamsQuery(p.CallContext, query)
+}
+
+// WithQuery creates new Params only passing same CallContext
+func (p *Params) WithContext() *Params {
+	return NewParams(p.CallContext)
+}
+
 // NewParams creates a empty params struct
 func NewParams(ctx context.Context) *Params {
 	callContext, cancel := context.WithCancel(ctx)

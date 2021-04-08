@@ -3,6 +3,7 @@ package feathers_mongo
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -10,6 +11,7 @@ import (
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func normalizeArray(data interface{}) interface{} {
@@ -17,17 +19,6 @@ func normalizeArray(data interface{}) interface{} {
 		return data
 	}
 	return []interface{}{data}
-}
-
-func prepareFilter(id string, filter map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	if id != "" {
-		filter["_id"], err = primitive.ObjectIDFromHex(id)
-	}
-	if err != nil {
-		return filter, err
-	}
-	return filter, nil
 }
 
 type m = map[string]interface{}
@@ -73,14 +64,25 @@ type Service struct {
 	app            *feathers.App
 	CollectionName string
 	validator      *validator.Validate
+	objectIdFields []string
 }
 
 // Service routes
 
 func (f *Service) Find(params feathers.Params) (interface{}, error) {
 	if collection, ok := f.collection(); ok {
+		filters, findOpts, err := f.prepareFilter("", params.Query)
+		if err != nil {
+			return nil, err
+		}
 
-		result, err := collection.Find(params.CallContext, params.Query)
+		queryOptions := options.Find()
+
+		if limit, ok := findOpts["$limit"]; ok {
+			queryOptions.SetLimit(int64(limit.(int)))
+		}
+		// fmt.Printf("QUERY: %#v\n\n", filters)
+		result, err := collection.Find(params.CallContext, filters, queryOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +96,6 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 		if returnData == nil {
 			returnData = []map[string]interface{}{}
 		}
-
 		return normalizeArray(returnData), err
 	}
 	return nil, notReady()
@@ -102,11 +103,15 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 	if collection, ok := f.collection(); ok {
 
-		query, err := prepareFilter(id, params.Query)
+		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
 		}
-		result, err := collection.Find(params.CallContext, query)
+
+		queryOptions := options.Find()
+		queryOptions.SetLimit(int64(1))
+
+		result, err := collection.Find(params.CallContext, query, queryOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -119,6 +124,7 @@ func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 		if len(returnData) <= 0 {
 			return nil, feathers_error.NewNotFound(fmt.Sprintf("Entity with id %s not found", id), nil)
 		}
+		// fmt.Printf("\n\nRETURNDATA: %#v\n\n", returnData)
 		return returnData[0], err
 	}
 	return nil, notReady()
@@ -168,7 +174,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 	}
 
 	if collection, ok := f.collection(); ok {
-		query, err := prepareFilter(id, params.Query)
+		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
 		}
@@ -190,13 +196,13 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 func (f *Service) Patch(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 
 	if collection, ok := f.collection(); ok {
-		query, err := prepareFilter(id, params.Query)
+		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
 		}
 		data["updatedAt"] = time.Now()
 		replacement := remapModifiers(data)
-		fmt.Printf("replacement: %#v\n", replacement)
+		// fmt.Printf("replacement: %#v\n", replacement)
 
 		result, err := collection.UpdateOne(params.CallContext, query, replacement)
 		if err != nil {
@@ -235,13 +241,88 @@ func (f *Service) mongoDb() (*mongo.Database, bool) {
 	return nil, false
 }
 
+var reservedFilters = []string{"$limit", "$sort", "$select", "$skip"}
+
+func (f *Service) prepareFilter(id string, filter map[string]interface{}) (map[string]interface{}, map[string]interface{}, error) {
+	feathersFilter := map[string]interface{}{}
+	var err error
+	if id != "" {
+		filter["_id"], err = primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return filter, feathersFilter, err
+		}
+	}
+
+	if len(f.objectIdFields) > 0 {
+		filter = replaceMongoKeys(filter, f.objectIdFields)
+	}
+
+	for filterKey, filerValue := range filter {
+		if !strings.HasPrefix(filterKey, "$") {
+			continue
+		}
+		if contains(reservedFilters, filterKey) {
+			delete(filter, filterKey)
+			feathersFilter["filterKey"] = filerValue
+		}
+	}
+	return filter, feathersFilter, nil
+}
+
+func replaceMongoKeys(filter map[string]interface{}, keys []string) map[string]interface{} {
+	for key, value := range filter {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			if strings.HasPrefix(key, "$") {
+				filter[key] = replaceMongoKeys(v, keys)
+			}
+		case string:
+			if contains(keys, key) {
+				objectId, err := primitive.ObjectIDFromHex(v)
+				if err != nil {
+					continue
+				}
+				// fmt.Printf("REPLACED %s with %v (err: %s)", key, objectId, err)
+				filter[key] = objectId
+			}
+		}
+	}
+	return filter
+}
+
 // NewService creates a new mongo service struct
 func NewService(collection string, model feathers.ModelFactory, app *feathers.App) *Service {
-	return &Service{
+	service := &Service{
 		BaseService:    &feathers.BaseService{},
 		ModelService:   feathers.NewModelService(model),
 		CollectionName: collection,
-
-		app: app,
+		objectIdFields: getModelObjectIdFields(model()),
+		app:            app,
 	}
+	return service
+}
+
+func getFirstTagField(tag string) string {
+	if strings.Contains(tag, ",") {
+		return strings.Split(tag, ",")[0]
+	}
+	return tag
+}
+
+func getModelObjectIdFields(model interface{}) []string {
+	fields := []string{}
+	e := reflect.ValueOf(model).Elem()
+	objectIdType := reflect.TypeOf(primitive.ObjectID{})
+	for i := 0; i < e.NumField(); i++ {
+		varType := e.Type().Field(i).Type
+		if varType.AssignableTo(objectIdType) {
+			varName := getFirstTagField(e.Type().Field(i).Tag.Get("mapstructure"))
+			// fmt.Printf("\n\n\nvarName: %s\n\n\n", varName)
+			if varName == "" {
+				varName = strings.ToLower(e.Type().Field(i).Name)
+			}
+			fields = append(fields, varName)
+		}
+	}
+	return fields
 }
