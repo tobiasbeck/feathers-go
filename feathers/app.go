@@ -221,12 +221,6 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 }
 
 func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
-	// defer func() {
-	// 	if err := recover(); err != nil {
-	// 		fmt.Printf("GOT PANIC %#v\n", err)
-	// 		//c.CallbackError(err.(error))
-	// 	}
-	// }()
 	var err error
 	// Before
 	origCtx := ctx
@@ -263,13 +257,18 @@ func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
 		return
 	}
 	c.Callback(ctx.Result)
+	go a.triggerUpdate(ctx)
 
+}
+
+func (a *App) triggerUpdate(ctx *HookContext) {
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
-			if rooms, err := service.Publish(event, ctx.Result, *ctx); err != nil {
+			if rooms, err := service.Publish(event, ctx.Result, ctx); err == nil {
+				serviceEvent := fmt.Sprintf("%s %s", ctx.Path, event)
 				for _, room := range rooms {
-					a.PublishToProviders(room, event, ctx.Result, ctx.Params.Provider)
+					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Params.Provider)
 				}
 			}
 		}

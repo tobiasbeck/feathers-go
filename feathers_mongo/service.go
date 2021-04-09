@@ -202,7 +202,7 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 		}
 		data["updatedAt"] = time.Now()
 		replacement := remapModifiers(data)
-		// fmt.Printf("replacement: %#v\n", replacement)
+		// fmt.Printf("replacement: %#v, data: %#v\n", replacement, data)
 
 		result, err := collection.UpdateOne(params.CallContext, query, replacement)
 		if err != nil {

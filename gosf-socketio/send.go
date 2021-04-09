@@ -24,15 +24,22 @@ func send(msg *protocol.Message, c *Channel, args interface{}, err error) error 
 			log.Println("socket.io send panic: ", r)
 		}
 	}()
-
-	if args != nil {
-		json, err := json.Marshal(&args)
-		if err != nil {
-			return err
+	if msg.Type != protocol.MessageTypeEmit {
+		if args != nil {
+			json, err := json.Marshal(&args)
+			if err != nil {
+				return err
+			}
+			msg.Args = "null," + string(json)
+		} else if err != nil {
+			json, err := json.Marshal(&err)
+			if err != nil {
+				return err
+			}
+			msg.Args = string(json)
 		}
-		msg.Args = "null," + string(json)
-	} else if err != nil {
-		json, err := json.Marshal(&err)
+	} else {
+		json, err := json.Marshal(&args)
 		if err != nil {
 			return err
 		}

@@ -195,18 +195,24 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 }
 
 // PublishHandler is a function which handles a publish of a service and returns a list of rooms to publish to
-type PublishHandler = func(data interface{}, ctx HookContext) []string
+type PublishHandler = func(data interface{}, ctx *HookContext) []string
 
 // PublishableService which can publish events
 type PublishableService interface {
 	RegisterPublishHandler(topic string, handler PublishHandler)
-	Publish(topic string, data interface{}, ctx HookContext) ([]string, error)
+	Publish(topic string, data interface{}, ctx *HookContext) ([]string, error)
 }
 
 //BasePublishableService is a basic implementation of PublishableService
 type BasePublishableService struct {
 	events     map[string]PublishHandler
 	eventsLock sync.RWMutex
+}
+
+func NewBasePublishableService() *BasePublishableService {
+	return &BasePublishableService{
+		events: map[string]PublishHandler{},
+	}
 }
 
 // RegisterPublishHandler registers a new handler for a topic
@@ -217,11 +223,12 @@ func (s *BasePublishableService) RegisterPublishHandler(topic string, handler Pu
 }
 
 // Publish calls PublishHandler if registerd and publishes data to returned topics
-func (s *BasePublishableService) Publish(topic string, data interface{}, ctx HookContext) ([]string, error) {
+func (s *BasePublishableService) Publish(topic string, data interface{}, ctx *HookContext) ([]string, error) {
 	s.eventsLock.RLock()
 	defer s.eventsLock.RUnlock()
-	if handler, ok := s.events[topic]; ok == true {
-		return handler(data, ctx), nil
+	if handler, ok := s.events[topic]; ok {
+		result := handler(data, ctx)
+		return result, nil
 	}
 	return nil, errors.New("Handler is not registered")
 }
