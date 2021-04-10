@@ -12,7 +12,7 @@ func CheckPermissions(requiredPermissions ...string) feathers.Hook {
 		if ctx.Type != feathers.Before {
 			return nil, errors.New("The feathers-permissions hook should only be used as a 'before' hook")
 		}
-		hookPermissions, ok := ctx.Params.Get("permissions")
+		hookPermissions, ok := ctx.Params.Lookup("permissions")
 		if !ok {
 			if ok, _ := IsProvider("external")(ctx); ok {
 				return nil, feathers_error.NewForbidden("You do not have the correct permissions (invalid permission entity).", nil)

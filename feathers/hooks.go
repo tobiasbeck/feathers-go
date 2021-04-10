@@ -81,7 +81,16 @@ type Params struct {
 }
 
 // Get retrieves a field from the hooks
-func (hc *Params) Get(key string) (interface{}, bool) {
+func (hc *Params) Get(key string) interface{} {
+	value, ok := hc.fields[key]
+	if !ok {
+		return nil
+	}
+	return value
+}
+
+// Get retrieves a field from the hooks
+func (hc *Params) Lookup(key string) (interface{}, bool) {
 	value, ok := hc.fields[key]
 	return value, ok
 }
