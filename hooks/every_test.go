@@ -9,19 +9,19 @@ import (
 )
 
 func hookOk() feathers.BoolHook {
-	return func(ctx *feathers.HookContext) (bool, error) {
+	return func(ctx *feathers.Context) (bool, error) {
 		return true, nil
 	}
 }
 
 func hookNotOk() feathers.BoolHook {
-	return func(ctx *feathers.HookContext) (bool, error) {
+	return func(ctx *feathers.Context) (bool, error) {
 		return false, nil
 	}
 }
 
 func hookError() feathers.BoolHook {
-	return func(ctx *feathers.HookContext) (bool, error) {
+	return func(ctx *feathers.Context) (bool, error) {
 		return false, errors.New("Any error")
 	}
 }
@@ -42,7 +42,7 @@ var everyTest = []struct {
 
 func TestEvery(t *testing.T) {
 	for key, data := range everyTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Params: feathers.Params{},
 		}
 

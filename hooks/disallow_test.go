@@ -24,7 +24,7 @@ var disallowTest = []struct {
 
 func TestDisallow(t *testing.T) {
 	for key, data := range disallowTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Params: feathers.Params{
 				Provider: data.provider,
 			},

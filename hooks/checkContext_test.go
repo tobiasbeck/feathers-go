@@ -20,7 +20,7 @@ var checkContextTest = []struct {
 
 func TestCheckContext(t *testing.T) {
 	for key, data := range checkContextTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Type:   data.ctxType,
 			Method: data.ctxMethod,
 		}

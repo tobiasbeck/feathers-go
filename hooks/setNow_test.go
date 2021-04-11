@@ -9,7 +9,7 @@ import (
 )
 
 func TestSetNow(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -23,11 +23,11 @@ func TestSetNow(t *testing.T) {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
 	}
-	if _, ok := ctx.Data.(map[string]interface{})["test"].(time.Time); !ok {
-		t.Errorf("field not changed correctly. expected value of time.Time, got: %t", ctx.Data.(map[string]interface{})["test"])
+	if _, ok := ctx.Data["test"].(time.Time); !ok {
+		t.Errorf("field not changed correctly. expected value of time.Time, got: %t", ctx.Data["test"])
 	}
 
-	if _, ok := ctx.Data.(map[string]interface{})["test3"].(time.Time); !ok {
-		t.Errorf("field not changed correctly. expected value of time.Time, got: %t", ctx.Data.(map[string]interface{})["test"])
+	if _, ok := ctx.Data["test3"].(time.Time); !ok {
+		t.Errorf("field not changed correctly. expected value of time.Time, got: %t", ctx.Data["test"])
 	}
 }

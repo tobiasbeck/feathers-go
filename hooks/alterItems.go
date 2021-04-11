@@ -2,7 +2,7 @@ package hooks
 
 import "github.com/tobiasbeck/feathers-go/feathers"
 
-type AlterItemHandler = func(item interface{}, ctx *feathers.HookContext) (interface{}, error)
+type AlterItemHandler = func(item interface{}, ctx *feathers.Context) (interface{}, error)
 
 /*
 AlterItems alters the items (either data or result)
@@ -10,7 +10,7 @@ different to the original feathers-hook returning nil will remove the item from 
 Returning error in handler will immediatly cancel execution and return error
 */
 func AlterItems(handler AlterItemHandler) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		items, normalized := GetItemsNormalized(ctx)
 		normalizedItems := make([]map[string]interface{}, 0, len(items))
 		for _, item := range items {

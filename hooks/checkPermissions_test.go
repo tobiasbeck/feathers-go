@@ -25,7 +25,7 @@ var checkPermissionsTests = []struct {
 
 func TestCheckPermissions(t *testing.T) {
 	for key, data := range checkPermissionsTests {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Type:   feathers.Before,
 			Method: feathers.Get,
 			Params: feathers.Params{

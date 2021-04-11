@@ -9,7 +9,7 @@ import (
 /*
 CheckContext checks the context for required properties. returns error if requirement not set.
 */
-func CheckContext(ctx *feathers.HookContext, hookName string, allowedTypes []feathers.HookType, allowedMethods []feathers.RestMethod) error {
+func CheckContext(ctx *feathers.Context, hookName string, allowedTypes []feathers.HookType, allowedMethods []feathers.RestMethod) error {
 	if len(allowedTypes) > 0 {
 		found := false
 		for _, allowedType := range allowedTypes {

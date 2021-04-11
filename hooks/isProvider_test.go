@@ -26,7 +26,7 @@ var providerTest = []struct {
 
 func TestProvider(t *testing.T) {
 	for key, data := range providerTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Params: feathers.Params{
 				Provider: data.provider,
 			},

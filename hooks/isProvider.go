@@ -4,7 +4,7 @@ import "github.com/tobiasbeck/feathers-go/feathers"
 
 //IsProvider BoolHook checks if is provider of specific type
 func IsProvider(provider string) feathers.BoolHook {
-	return func(ctx *feathers.HookContext) (bool, error) {
+	return func(ctx *feathers.Context) (bool, error) {
 		if ctx.Params.Provider == "" {
 			if provider == "server" {
 				return true, nil

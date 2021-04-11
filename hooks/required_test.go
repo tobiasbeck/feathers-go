@@ -8,7 +8,7 @@ import (
 )
 
 func TestRequired(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -25,7 +25,7 @@ func TestRequired(t *testing.T) {
 }
 
 func TestRequired2(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -42,7 +42,7 @@ func TestRequired2(t *testing.T) {
 }
 
 func TestRequired3(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{

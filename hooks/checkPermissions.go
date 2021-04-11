@@ -8,7 +8,7 @@ import (
 )
 
 func CheckPermissions(requiredPermissions ...string) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		if ctx.Type != feathers.Before {
 			return nil, errors.New("The feathers-permissions hook should only be used as a 'before' hook")
 		}

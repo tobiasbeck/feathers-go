@@ -25,10 +25,10 @@ type task struct {
 	mode      taskMode
 	method    RestMethod
 	chainType HookType
-	hookChain []func(ctx *HookContext) (*HookContext, error) // If this is changed to []Hook it triggers #25838 in Go.
+	hookChain []func(ctx *Context) (*Context, error) // If this is changed to []Hook it triggers #25838 in Go.
 	service   Service
 	position  int
-	context   *HookContext
+	context   *Context
 }
 
 // ---------------
@@ -65,7 +65,7 @@ func filterData(location locationType, method RestMethod, data map[string]interf
 	return nil
 }
 
-func paramContextCancelled(ctx HookContext) bool {
+func paramContextCancelled(ctx Context) bool {
 	context := ctx.Params.CallContext
 	if context.Err() == nil {
 		return false
@@ -103,7 +103,7 @@ type App struct {
 
 // ---------------
 
-func (a *App) mergeAppHooks(chain []func(ctx *HookContext) (*HookContext, error), hookType HookType, branch RestMethod) []func(ctx *HookContext) (*HookContext, error) {
+func (a *App) mergeAppHooks(chain []func(ctx *Context) (*Context, error), hookType HookType, branch RestMethod) []func(ctx *Context) (*Context, error) {
 	if appHooks, ok := getField(&a.hooks, strings.Title(hookType.String())); ok {
 		appHookBranch := appHooks.(HooksTreeBranch)
 		appHookChain := appHookBranch.Branch(branch)
@@ -151,9 +151,9 @@ func (a *App) AddService(name string, service Service) {
 
 func (a *App) handleServerServiceCall(service string, method RestMethod, c Caller, data interface{}, id string, params Params) {
 	if serviceInstance, ok := a.services[service]; ok {
-		initContext := HookContext{
+		initContext := Context{
 			App:     *a,
-			Data:    data,
+			Data:    data.(map[string]interface{}),
 			Method:  method,
 			Path:    service,
 			ID:      id,
@@ -169,7 +169,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 }
 
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
-func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data interface{}, id string, query map[string]interface{}) {
+func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
 	if serviceInstance, ok := a.services[service]; ok {
 		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		go func() {
@@ -190,7 +190,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 
 		}
 
-		initContext := HookContext{
+		initContext := Context{
 			App:     *a,
 			Data:    data,
 			Method:  method,
@@ -220,7 +220,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 	return
 }
 
-func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
+func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 	var err error
 	// Before
 	origCtx := ctx
@@ -233,11 +233,11 @@ func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
 		var result interface{}
 		switch ctx.Method {
 		case Create:
-			result, err = service.Create(ctx.Data.(map[string]interface{}), ctx.Params)
+			result, err = service.Create(ctx.Data, ctx.Params)
 		case Update:
-			result, err = service.Update(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+			result, err = service.Update(ctx.ID, ctx.Data, ctx.Params)
 		case Patch:
-			result, err = service.Patch(ctx.ID, ctx.Data.(map[string]interface{}), ctx.Params)
+			result, err = service.Patch(ctx.ID, ctx.Data, ctx.Params)
 		case Remove:
 			result, err = service.Remove(ctx.ID, ctx.Params)
 		case Find:
@@ -261,7 +261,7 @@ func (a *App) handlePipeline(ctx *HookContext, service Service, c Caller) {
 
 }
 
-func (a *App) triggerUpdate(ctx *HookContext) {
+func (a *App) triggerUpdate(ctx *Context) {
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
@@ -275,7 +275,7 @@ func (a *App) triggerUpdate(ctx *HookContext) {
 	}
 }
 
-func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Service) (*HookContext, error) {
+func (a *App) handleHookChain(ctx *Context, chainType HookType, service Service) (*Context, error) {
 	tree := service.HookTree()
 	branch := tree.Branch(chainType)
 	chain := branch.Branch(ctx.Method)
@@ -293,7 +293,7 @@ func (a *App) handleHookChain(ctx *HookContext, chainType HookType, service Serv
 	return loopCtx, nil
 }
 
-func (a *App) handlePipelineError(err error, ctx *HookContext, service Service, c Caller) {
+func (a *App) handlePipelineError(err error, ctx *Context, service Service, c Caller) {
 	ctx.Error = err
 	ctx, chainErr := a.handleHookChain(ctx, Error, service)
 	if chainErr != nil {

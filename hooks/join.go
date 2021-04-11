@@ -2,10 +2,10 @@ package hooks
 
 import "github.com/tobiasbeck/feathers-go/feathers"
 
-type JoinOperator = func(entity map[string]interface{}, ctx *feathers.HookContext) error
+type JoinOperator = func(entity map[string]interface{}, ctx *feathers.Context) error
 
 func Join(joinConfig map[string]JoinOperator) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		data, normalized := GetItemsNormalized(ctx)
 		for _, entity := range data {
 			for _, operator := range joinConfig {

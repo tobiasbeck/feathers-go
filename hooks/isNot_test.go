@@ -19,7 +19,7 @@ var isNotTest = []struct {
 
 func TestIsNot(t *testing.T) {
 	for key, data := range isNotTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Params: feathers.Params{},
 		}
 

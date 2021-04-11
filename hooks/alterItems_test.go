@@ -10,7 +10,7 @@ import (
 )
 
 func TestAlterItemsBefore(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -20,7 +20,7 @@ func TestAlterItemsBefore(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.HookContext) (interface{}, error) {
+	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		if itemMap, ok := item.(map[string]interface{}); ok {
 			delete(itemMap, "test")
 			itemMap["test2"] = "hello"
@@ -32,27 +32,27 @@ func TestAlterItemsBefore(t *testing.T) {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
 	}
-	if _, ok := ctx.Data.(map[string]interface{})["test"]; ok {
-		t.Errorf("field not removed correctly. expected field to be missing, got: %s", ctx.Data.(map[string]interface{})["test"].(string))
+	if _, ok := ctx.Data["test"]; ok {
+		t.Errorf("field not removed correctly. expected field to be missing, got: %s", ctx.Data["test"].(string))
 	}
 
-	if ctx.Data.(map[string]interface{})["test2"].(string) != "hello" {
-		t.Errorf("field not changed correclty. expected 'hello', got: %s", ctx.Data.(map[string]interface{})["test2"].(string))
+	if ctx.Data["test2"].(string) != "hello" {
+		t.Errorf("field not changed correclty. expected 'hello', got: %s", ctx.Data["test2"].(string))
 	}
 
-	if ctx.Data.(map[string]interface{})["test3"].(string) != "TaTe" {
-		t.Errorf("changed not specified field. expected 'TeSt', got: %s", ctx.Data.(map[string]interface{})["test3"].(string))
+	if ctx.Data["test3"].(string) != "TaTe" {
+		t.Errorf("changed not specified field. expected 'TeSt', got: %s", ctx.Data["test3"].(string))
 	}
 }
 
 func TestAlterItemsError(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data:   map[string]interface{}{},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.HookContext) (interface{}, error) {
+	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		return nil, errors.New("could not transform item to map[string]interface{}")
 	})(ctx)
 	if err == nil {
@@ -62,7 +62,7 @@ func TestAlterItemsError(t *testing.T) {
 }
 
 func TestAlterItemsRemove(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -72,7 +72,7 @@ func TestAlterItemsRemove(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.HookContext) (interface{}, error) {
+	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		return nil, nil
 	})(ctx)
 	if err != nil {
@@ -86,10 +86,10 @@ func TestAlterItemsRemove(t *testing.T) {
 }
 
 func TestAlterItemsRemoveArray(t *testing.T) {
-	ctx := &feathers.HookContext{
-		Type:   feathers.Before,
+	ctx := &feathers.Context{
+		Type:   feathers.After,
 		Method: "create",
-		Data: []map[string]interface{}{{
+		Result: []map[string]interface{}{{
 			"test":  "TesT",
 			"test2": "TeSt",
 			"test3": "TaTe",
@@ -102,7 +102,7 @@ func TestAlterItemsRemoveArray(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.HookContext) (interface{}, error) {
+	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		if itemMap, ok := item.(map[string]interface{}); ok {
 			if itemMap["test"].(string) == "remove" {
 				return nil, nil
@@ -116,7 +116,7 @@ func TestAlterItemsRemoveArray(t *testing.T) {
 		return
 	}
 
-	if len(ctx.Data.([]map[string]interface{})) != 1 {
+	if len(ctx.Result.([]map[string]interface{})) != 1 {
 		t.Errorf("entity not removed correctly")
 	}
 }

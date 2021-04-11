@@ -2,7 +2,7 @@ package hooks
 
 import "github.com/tobiasbeck/feathers-go/feathers"
 
-func GetItems(ctx *feathers.HookContext) interface{} {
+func GetItems(ctx *feathers.Context) interface{} {
 	if ctx.Type == feathers.Before {
 		return ctx.Data
 	} else {
@@ -10,15 +10,15 @@ func GetItems(ctx *feathers.HookContext) interface{} {
 	}
 }
 
-func ReplaceItems(ctx *feathers.HookContext, data interface{}) {
+func ReplaceItems(ctx *feathers.Context, data interface{}) {
 	if ctx.Type == feathers.Before {
-		ctx.Data = data
+		ctx.Data = data.(map[string]interface{})
 	} else {
 		ctx.Result = data
 	}
 }
 
-func GetItemsNormalized(ctx *feathers.HookContext) ([]map[string]interface{}, bool) {
+func GetItemsNormalized(ctx *feathers.Context) ([]map[string]interface{}, bool) {
 	if ctx.Type == feathers.Before {
 		return NormalizeSlice(ctx.Data)
 	} else {
@@ -26,10 +26,10 @@ func GetItemsNormalized(ctx *feathers.HookContext) ([]map[string]interface{}, bo
 	}
 }
 
-func ReplaceItemsNormalized(ctx *feathers.HookContext, data []map[string]interface{}, normalized bool) {
+func ReplaceItemsNormalized(ctx *feathers.Context, data []map[string]interface{}, normalized bool) {
 	normData := UnormalizeSlice(data, normalized)
 	if ctx.Type == feathers.Before {
-		ctx.Data = normData
+		ctx.Data = normData.(map[string]interface{})
 	} else {
 		ctx.Result = normData
 	}

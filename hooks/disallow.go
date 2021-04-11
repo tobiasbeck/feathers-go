@@ -10,7 +10,7 @@ import (
   If no providers are passed route is completely disabled
 */
 func Disallow(providers ...string) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		err := feathers_error.NewMethodNotAllowed("Provider "+ctx.Params.Provider+" can not call "+ctx.Method.String()+". (disallow)", nil)
 		if len(providers) == 0 {
 			return nil, err

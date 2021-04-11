@@ -23,7 +23,7 @@ var someTest = []struct {
 
 func TestSome(t *testing.T) {
 	for key, data := range someTest {
-		context := feathers.HookContext{
+		context := feathers.Context{
 			Params: feathers.Params{},
 		}
 

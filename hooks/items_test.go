@@ -14,7 +14,7 @@ func TestGetItems(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data:   data,
@@ -33,7 +33,7 @@ func TestGetItemsAfter(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.After,
 		Method: "create",
 		Result: data,
@@ -52,7 +52,7 @@ func TestReplaceItems(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 	}
@@ -69,7 +69,7 @@ func TestReplaceItemsAfter(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.After,
 		Method: "create",
 	}
@@ -86,7 +86,7 @@ func TestGetItemsNormalized(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data:   data,
@@ -109,7 +109,7 @@ func TestGetItemsNormalizedAfter(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.After,
 		Method: "create",
 		Result: data,
@@ -132,7 +132,7 @@ func TestReplaceItemsNormalized(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 	}
@@ -150,7 +150,7 @@ func TestReplaceItemsNormalizedAfter(t *testing.T) {
 		"test2": "TeSt",
 		"test3": "tEsT",
 	}}
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.After,
 		Method: "create",
 	}

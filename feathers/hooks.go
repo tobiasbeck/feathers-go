@@ -1,6 +1,10 @@
 package feathers
 
-import "context"
+import (
+	"context"
+
+	"github.com/mcuadros/go-lookup"
+)
 
 // RestMethod represents the method which was called
 type RestMethod string
@@ -137,10 +141,20 @@ func NewParamsQuery(ctx context.Context, query map[string]interface{}) *Params {
 	}
 }
 
-// HookContext is the context which is passed to every go-feathers hook
-type HookContext struct {
+type Data map[string]interface{}
+
+func (d Data) Get(path []string) interface{} {
+	value, err := lookup.Lookup(d, path...)
+	if err != nil {
+		return nil
+	}
+	return value.Interface()
+}
+
+// Context is the context which is passed to every go-feathers hook
+type Context struct {
 	App        App
-	Data       interface{}
+	Data       Data
 	Error      error
 	ID         string
 	Method     RestMethod
@@ -154,7 +168,7 @@ type HookContext struct {
 }
 
 // Hook is a function which can be used to modify request params
-type Hook = func(ctx *HookContext) (*HookContext, error)
+type Hook = func(ctx *Context) (*Context, error)
 
 // BoolHook works just like a hook but returns a boolean and cannot modify the context
-type BoolHook = func(ctx *HookContext) (bool, error)
+type BoolHook = func(ctx *Context) (bool, error)

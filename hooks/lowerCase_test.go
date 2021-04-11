@@ -8,7 +8,7 @@ import (
 )
 
 func TestLowercaseBefore(t *testing.T) {
-	ctx := &feathers.HookContext{
+	ctx := &feathers.Context{
 		Type:   feathers.Before,
 		Method: "create",
 		Data: map[string]interface{}{
@@ -22,11 +22,11 @@ func TestLowercaseBefore(t *testing.T) {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
 	}
-	if ctx.Data.(map[string]interface{})["test"].(string) != "test" {
-		t.Errorf("field not changed correctly. expected 'test', got: %s", ctx.Data.(map[string]interface{})["test"].(string))
+	if ctx.Data["test"].(string) != "test" {
+		t.Errorf("field not changed correctly. expected 'test', got: %s", ctx.Data["test"].(string))
 	}
 
-	if ctx.Data.(map[string]interface{})["test2"].(string) != "TeSt" {
-		t.Errorf("changed not specified field. expected 'TeSt', got: %s", ctx.Data.(map[string]interface{})["test2"].(string))
+	if ctx.Data["test2"].(string) != "TeSt" {
+		t.Errorf("changed not specified field. expected 'TeSt', got: %s", ctx.Data["test2"].(string))
 	}
 }

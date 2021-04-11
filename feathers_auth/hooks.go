@@ -8,7 +8,7 @@ import (
 
 func AuthenticationHook(strategies ...string) feathers.Hook {
 
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		if ctx.Type != feathers.Before {
 			return nil, feathers_error.NewNotAuthenticated("The authenticate hook must be used as a before hook", nil)
 		}
@@ -36,8 +36,8 @@ func AuthenticationHook(strategies ...string) feathers.Hook {
 
 // HashPassword is a hool which hashes the password in the given field using bcrypt. If the field is not set or cannot be converted a error is retunred
 func HashPassword(field string) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
-		if password, ok := ctx.Data.(map[string]interface{})[field]; ok {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
+		if password, ok := ctx.Data[field]; ok {
 			passwordString, ok := password.(string)
 			if ok == false {
 				return nil, feathers_error.NewGeneralError("password field incorrect", nil)
@@ -47,7 +47,7 @@ func HashPassword(field string) feathers.Hook {
 			if err != nil {
 				return nil, feathers_error.Convert(err)
 			}
-			ctx.Data.(map[string]interface{})[field] = string(encrypted)
+			ctx.Data[field] = string(encrypted)
 			return ctx, nil
 		}
 		return nil, feathers_error.NewBadRequest("password not found", nil)

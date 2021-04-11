@@ -3,7 +3,7 @@ package hooks
 import "github.com/tobiasbeck/feathers-go/feathers"
 
 func DiscardQuery(fields ...string) feathers.Hook {
-	return func(ctx *feathers.HookContext) (*feathers.HookContext, error) {
+	return func(ctx *feathers.Context) (*feathers.Context, error) {
 		err := CheckContext(ctx, "discardQuery", []feathers.HookType{"before"}, []feathers.RestMethod{})
 		if err != nil {
 			return nil, err
