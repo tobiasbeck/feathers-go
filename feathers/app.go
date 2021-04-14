@@ -78,7 +78,7 @@ func paramContextCancelled(ctx Context) bool {
 // Provider handles requests and can listen for new connections
 type Provider interface {
 	Listen(port int, mux *http.ServeMux)
-	Publish(room string, event string, data interface{}, provider string)
+	Publish(room string, event string, data interface{}, path string, provider string)
 }
 
 // AppModules is a module which can configure the application
@@ -257,18 +257,18 @@ func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 		return
 	}
 	c.Callback(ctx.Result)
-	go a.triggerUpdate(ctx)
+	go a.TriggerUpdate(ctx)
 
 }
 
-func (a *App) triggerUpdate(ctx *Context) {
+func (a *App) TriggerUpdate(ctx *Context) {
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
 			if rooms, err := service.Publish(event, ctx.Result, ctx); err == nil {
 				serviceEvent := fmt.Sprintf("%s %s", ctx.Path, event)
 				for _, room := range rooms {
-					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Params.Provider)
+					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Path, ctx.Params.Provider)
 				}
 			}
 		}
@@ -304,9 +304,9 @@ func (a *App) handlePipelineError(err error, ctx *Context, service Service, c Ca
 }
 
 // PublishToProviders publishes a event to all providers. Each can decide what to do with the publish by themselfs
-func (a *App) PublishToProviders(room string, event string, data interface{}, publishProvider string) {
+func (a *App) PublishToProviders(room string, event string, data interface{}, path string, publishProvider string) {
 	for _, provider := range a.providers {
-		provider.Publish(room, event, data, publishProvider)
+		provider.Publish(room, event, data, path, publishProvider)
 	}
 }
 

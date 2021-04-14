@@ -64,7 +64,7 @@ func (h *HttpProvider) Listen(port int, serveMux *http.ServeMux) {
 	serveMux.Handle("/", h)
 }
 
-func (p *HttpProvider) Publish(room string, event string, data interface{}, provider string) {
+func (p *HttpProvider) Publish(room string, event string, data interface{}, path string, provider string) {
 }
 
 //ServceHttp is implemented from http.Handler. It handles a request

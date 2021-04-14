@@ -4,18 +4,19 @@ import (
 	"reflect"
 )
 
-func NormalizeSlice(data interface{}) ([]map[string]interface{}, bool) {
+func NormalizeSlice(data interface{}) (interface{}, bool) {
 	r := reflect.ValueOf(data)
 	if r.Kind() == reflect.Slice {
-		return data.([]map[string]interface{}), false
+		return data, false
 	} else {
 		return []map[string]interface{}{data.(map[string]interface{})}, true
 	}
 }
 
-func UnormalizeSlice(data []map[string]interface{}, normalized bool) interface{} {
-	if normalized && len(data) > 0 {
-		return data[0]
+func UnormalizeSlice(data interface{}, normalized bool) interface{} {
+	r := reflect.ValueOf(data)
+	if normalized && r.Len() > 0 {
+		return r.Index(0).Interface()
 	}
 
 	if !normalized {

@@ -16,7 +16,7 @@ func LowerCase(fields ...string) feathers.Hook {
 		}
 
 		items, normalized := GetItemsNormalized(ctx)
-		for _, item := range items {
+		for _, item := range items.([]map[string]interface{}) {
 			for _, field := range fields {
 				value := item[field]
 				if strValue, ok := value.(string); ok {

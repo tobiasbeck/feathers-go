@@ -20,7 +20,7 @@ func Required(fields ...string) feathers.Hook {
 
 		items, normalized := GetItemsNormalized(ctx)
 
-		for _, item := range items {
+		for _, item := range items.([]map[string]interface{}) {
 			for _, field := range fields {
 				err := feathers_error.NewBadRequest(fmt.Sprintf("Field %s does not exist. (preventChanges)", field), nil)
 				if val, ok := item[field]; ok {

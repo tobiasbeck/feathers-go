@@ -18,7 +18,7 @@ func SetNow(fields ...string) feathers.Hook {
 
 		items, normalized := GetItemsNormalized(ctx)
 
-		for _, item := range items {
+		for _, item := range items.([]map[string]interface{}) {
 			for _, field := range fields {
 				item[field] = time.Now()
 			}

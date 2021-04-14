@@ -18,7 +18,7 @@ func ReplaceItems(ctx *feathers.Context, data interface{}) {
 	}
 }
 
-func GetItemsNormalized(ctx *feathers.Context) ([]map[string]interface{}, bool) {
+func GetItemsNormalized(ctx *feathers.Context) (interface{}, bool) {
 	if ctx.Type == feathers.Before {
 		return NormalizeSlice(ctx.Data)
 	} else {
@@ -26,7 +26,7 @@ func GetItemsNormalized(ctx *feathers.Context) ([]map[string]interface{}, bool) 
 	}
 }
 
-func ReplaceItemsNormalized(ctx *feathers.Context, data []map[string]interface{}, normalized bool) {
+func ReplaceItemsNormalized(ctx *feathers.Context, data interface{}, normalized bool) {
 	normData := UnormalizeSlice(data, normalized)
 	if ctx.Type == feathers.Before {
 		ctx.Data = normData.(map[string]interface{})

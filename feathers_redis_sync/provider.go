@@ -1,6 +1,7 @@
 package feathers_redis_sync
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,20 @@ import (
 	"github.com/tobiasbeck/feathers-go/feathers"
 )
 
+type FeathersMessageContext struct {
+	Method feathers.RestMethod `json:"method"`
+	ID     string              `json:"id"`
+	Type   feathers.HookType   `json:"type"`
+}
+type FeathersMessage struct {
+	Context FeathersMessageContext `json:"context"`
+	Event   string                 `json:"event"`
+	Data    interface{}            `json:"data"`
+	Path    string                 `json:"path"`
+}
 type RedisPublishMessage struct {
 	Room    string      `json:"room"`
+	Path    string      `json:"path"`
 	Message interface{} `json:"message"`
 }
 
@@ -23,24 +36,49 @@ type RedisSync struct {
 
 func (rs *RedisSync) Listen(port int, mux *http.ServeMux) {
 	go func() {
-		pubsub := rs.client.Subscribe("created", "removed", "patched", "updated")
+		pubsub := rs.client.Subscribe("created", "removed", "patched", "updated", "feathers-sync")
 		for {
 			msg, err := pubsub.ReceiveMessage()
-			if err != nil {
-				panic(err)
-			}
-			var data RedisPublishMessage
-			err = json.Unmarshal([]byte(msg.Payload), &data)
 			if err != nil {
 				fmt.Println("REDIS ERROR", err.Error())
 				continue
 			}
-			rs.app.PublishToProviders(data.Room, msg.Channel, data.Message, "redis-sync")
+			if msg.Channel == "feathers-sync" {
+				var data FeathersMessage
+				err = json.Unmarshal([]byte(msg.Payload), &data)
+				if err != nil {
+					fmt.Println("REDIS ERROR", err.Error())
+					continue
+				}
+				// TODO: Better context
+				params := feathers.NewParams(context.Background())
+				params.Provider = "redis-sync"
+				triggerContext := &feathers.Context{
+					App:     *rs.app,
+					Data:    data.Data.(map[string]interface{}),
+					Method:  data.Context.Method,
+					Path:    data.Path,
+					ID:      data.Context.ID,
+					Service: rs.app.Service(data.Path),
+					Type:    data.Context.Type,
+					Params:  *params,
+				}
+				fmt.Println("TRIGGER UPDATE", data.Path)
+				rs.app.TriggerUpdate(triggerContext)
+			} else {
+				var data RedisPublishMessage
+				err = json.Unmarshal([]byte(msg.Payload), &data)
+				if err != nil {
+					fmt.Println("REDIS ERROR", err.Error())
+					continue
+				}
+				rs.app.PublishToProviders(data.Room, msg.Channel, data.Message, data.Path, "redis-sync")
+			}
 		}
 	}()
 }
 
-func (rs *RedisSync) Publish(room string, event string, data interface{}, provider string) {
+func (rs *RedisSync) Publish(room string, event string, data interface{}, path string, provider string) {
 	if provider == "redis-sync" {
 		// If this has send the publish event skip
 		return
@@ -48,6 +86,7 @@ func (rs *RedisSync) Publish(room string, event string, data interface{}, provid
 	message := RedisPublishMessage{
 		Room:    room,
 		Message: data,
+		Path:    path,
 	}
 	encoded, err := json.Marshal(message)
 	if err == nil {

@@ -20,7 +20,7 @@ func TestNormalizeSlice(t *testing.T) {
 		t.Errorf("Did not normalize data")
 	}
 
-	if !reflect.DeepEqual(items[0], data) {
+	if !reflect.DeepEqual(items.([]map[string]interface{})[0], data) {
 		t.Errorf("Did not return data correctly")
 	}
 }

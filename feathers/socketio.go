@@ -88,7 +88,7 @@ type SocketIOProvider struct {
 }
 
 //Publish publishes a event to connections subscibed to room
-func (p *SocketIOProvider) Publish(room string, event string, data interface{}, provider string) {
+func (p *SocketIOProvider) Publish(room string, event string, data interface{}, path string, provider string) {
 	p.server.BroadcastTo(room, event, data)
 }
 
