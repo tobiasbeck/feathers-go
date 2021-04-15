@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type taskMode string
@@ -164,7 +165,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
-	fmt.Println("Unknown Service " + service)
+	log.Warnln("Unknown Service " + service)
 	return
 }
 
@@ -216,7 +217,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
-	fmt.Println("Unknown Service " + service)
+	log.Warnln("Unknown Service " + service)
 	return
 }
 
@@ -317,13 +318,12 @@ func (a *App) Listen() {
 	}
 
 	if port, ok := a.config["port"]; ok {
-		fmt.Println("Listening at ", port)
+		log.Infoln("Listening at ", port)
 		// mux := mux.NewRouter()
 		serveMux := http.NewServeMux()
 		for _, provider := range a.providers {
 			provider.Listen(port.(int), serveMux)
 		}
-		log.Println("Listening...")
 		log.Panic(http.ListenAndServe(":"+strconv.Itoa(port.(int)), serveMux))
 		return
 	}

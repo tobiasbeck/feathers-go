@@ -2,6 +2,8 @@ package feathers
 
 import (
 	"context"
+
+	"github.com/mcuadros/go-lookup"
 )
 
 // RestMethod represents the method which was called
@@ -56,6 +58,8 @@ const (
 	Error HookType = "error"
 )
 
+type Query = map[string]interface{}
+
 // Params is the params passed to functions and go-feathers hooks
 type Params struct {
 	Params map[string]interface{}
@@ -75,7 +79,7 @@ type Params struct {
 	CallContextCancel context.CancelFunc
 	fields            map[string]interface{}
 	// Query conatains query fields specified by client
-	Query map[string]interface{}
+	Query Query
 
 	User map[string]interface{}
 
@@ -95,6 +99,11 @@ func (hc *Params) Get(key string) interface{} {
 func (hc *Params) Lookup(key string) (interface{}, bool) {
 	value, ok := hc.fields[key]
 	return value, ok
+}
+
+func (hc *Params) Has(key string) bool {
+	_, ok := hc.fields[key]
+	return ok
 }
 
 // Set sets a hook field (e.g. user, additional information etc.)
@@ -163,6 +172,22 @@ type Context struct {
 	Type       HookType
 
 	Params Params
+}
+
+func (c *Context) DataGet(key ...string) interface{} {
+	val, ok := lookup.Lookup(c.Data, key...)
+	if ok != nil {
+		return nil
+	}
+	return val.Interface()
+}
+
+func (c *Context) DataHas(key ...string) bool {
+	val, ok := lookup.Lookup(c.Data, key...)
+	if ok == nil && !val.IsNil() {
+		return true
+	}
+	return false
 }
 
 // Hook is a function which can be used to modify request params

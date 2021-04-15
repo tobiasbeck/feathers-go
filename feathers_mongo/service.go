@@ -204,16 +204,24 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 		replacement := remapModifiers(data)
 		// fmt.Printf("replacement: %#v, data: %#v\n", replacement, data)
 
-		result, err := collection.UpdateOne(params.CallContext, query, replacement)
+		opts := options.Update()
+		if params.Has("mongodb.upsert") {
+			opts.SetUpsert(true)
+		}
+
+		result, err := collection.UpdateOne(params.CallContext, query, replacement, opts)
 		if err != nil {
 			return nil, err
 		}
-		if result.MatchedCount == 0 {
+		if result.MatchedCount == 0 && result.UpsertedCount == 0 {
 			return nil, nil
 		}
 		findResult := collection.FindOne(params.CallContext, query)
 		var document map[string]interface{}
-		findResult.Decode(&document)
+		err = findResult.Decode(&document)
+		if err != nil {
+			return nil, err
+		}
 		return document, nil
 	}
 	return nil, notReady()

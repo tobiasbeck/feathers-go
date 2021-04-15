@@ -16,6 +16,7 @@ require (
 	github.com/onsi/ginkgo v1.15.0 // indirect
 	github.com/onsi/gomega v1.10.5 // indirect
 	github.com/pascaldekloe/jwt v1.10.0 // indirect
+	github.com/sirupsen/logrus v1.4.2
 	go.mongodb.org/mongo-driver v1.4.6
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
