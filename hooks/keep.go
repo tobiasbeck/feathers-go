@@ -22,7 +22,7 @@ func Keep(keep ...string) feathers.Hook {
 
 		items, normalized := GetItemsNormalized(ctx)
 
-		for _, item := range items.([]map[string]interface{}) {
+		for _, item := range items {
 			for key, _ := range item {
 				if !contains(keep, key) {
 					delete(item, key)

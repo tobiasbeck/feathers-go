@@ -11,8 +11,7 @@ Returning error in handler will immediatly cancel execution and return error
 */
 func AlterItems(handler AlterItemHandler) feathers.Hook {
 	return func(ctx *feathers.Context) (*feathers.Context, error) {
-		itemsInt, normalized := GetItemsNormalized(ctx)
-		items := itemsInt.([]map[string]interface{})
+		items, normalized := GetItemsNormalized(ctx)
 		normalizedItems := make([]map[string]interface{}, 0, len(items))
 		for _, item := range items {
 			data, err := handler(item, ctx)

@@ -18,7 +18,7 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 
 		items, normalized := GetItemsNormalized(ctx)
 
-		for _, item := range items.([]map[string]interface{}) {
+		for _, item := range items {
 			for _, field := range fields {
 				if _, ok := item[field]; ok {
 					if retError {

@@ -2,6 +2,24 @@ package hooks
 
 import "github.com/tobiasbeck/feathers-go/feathers"
 
+func normalizeToMapSlice(slice interface{}) []map[string]interface{} {
+	switch v := slice.(type) {
+	case []map[string]interface{}:
+		return v
+	case []interface{}:
+		result := make([]map[string]interface{}, 0, len(v))
+		for _, m := range v {
+			mm, ok := m.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			result = append(result, mm)
+		}
+		return result
+	}
+	return []map[string]interface{}{}
+}
+
 func GetItems(ctx *feathers.Context) interface{} {
 	if ctx.Type == feathers.Before {
 		return ctx.Data
@@ -18,11 +36,15 @@ func ReplaceItems(ctx *feathers.Context, data interface{}) {
 	}
 }
 
-func GetItemsNormalized(ctx *feathers.Context) (interface{}, bool) {
+func GetItemsNormalized(ctx *feathers.Context) ([]map[string]interface{}, bool) {
 	if ctx.Type == feathers.Before {
-		return NormalizeSlice(ctx.Data)
+		slice, normalized := NormalizeSlice(ctx.Data)
+		mapSlice := normalizeToMapSlice(slice)
+		return mapSlice, normalized
 	} else {
-		return NormalizeSlice(ctx.Result)
+		slice, normalized := NormalizeSlice(ctx.Result)
+		mapSlice := normalizeToMapSlice(slice)
+		return mapSlice, normalized
 	}
 }
 
