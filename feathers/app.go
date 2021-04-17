@@ -171,6 +171,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
 func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
+	// fmt.Printf("Request:\n  service: %s\n  method: %s\n  data: %+v\n\n", service, method, data)
 	if serviceInstance, ok := a.services[service]; ok {
 		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		go func() {

@@ -227,7 +227,7 @@ func (as *appService) Patch(id string, data map[string]interface{}, params Param
 }
 
 func (as *appService) Remove(id string, params Params) (interface{}, error) {
-	return as.callMethod(Patch, map[string]interface{}{}, id, params)
+	return as.callMethod(Remove, map[string]interface{}{}, id, params)
 }
 
 func (as *appService) HookTree() HooksTree {

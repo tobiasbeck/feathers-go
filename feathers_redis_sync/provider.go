@@ -53,17 +53,19 @@ func (rs *RedisSync) Listen(port int, mux *http.ServeMux) {
 				// TODO: Better context
 				params := feathers.NewParams(context.Background())
 				params.Provider = "redis-sync"
+				service, _ := rs.app.ServiceClass(data.Path)
 				triggerContext := &feathers.Context{
 					App:     *rs.app,
 					Data:    data.Data.(map[string]interface{}),
+					Result:  data.Data,
 					Method:  data.Context.Method,
 					Path:    data.Path,
 					ID:      data.Context.ID,
-					Service: rs.app.Service(data.Path),
+					Service: service,
 					Type:    data.Context.Type,
 					Params:  *params,
 				}
-				fmt.Println("TRIGGER UPDATE", data.Path)
+
 				rs.app.TriggerUpdate(triggerContext)
 			} else {
 				var data RedisPublishMessage

@@ -228,7 +228,32 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 }
 
 func (f *Service) Remove(id string, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewNotImplemented("Function is not implemented", nil)
+	if collection, ok := f.collection(); ok {
+		query, _, err := f.prepareFilter(id, params.Query)
+		if err != nil {
+			return nil, err
+		}
+
+		findResult := collection.FindOne(params.CallContext, query)
+		var document map[string]interface{}
+		err = findResult.Decode(&document)
+		if err != nil {
+			return nil, err
+		}
+
+		deleteResult, err := collection.DeleteOne(params.CallContext, query)
+		if err != nil {
+			return nil, err
+		}
+
+		if deleteResult.DeletedCount != 1 {
+			return nil, feathers_error.NewNotFound("Could not delete entity")
+		}
+
+		return document, nil
+
+	}
+	return nil, notReady()
 }
 
 func notReady() error {
