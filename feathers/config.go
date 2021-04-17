@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/imdario/mergo"
 	"github.com/tobiasbeck/feathers-go/feathers/yaml"
@@ -32,13 +33,33 @@ func loadConfig(configPath string) (map[string]interface{}, error) {
 	if env, ok := os.LookupEnv("APP_ENV"); ok {
 		envConfig, err := LoadConfigFile(path.Join(configPath, env+".yaml"))
 		if err != nil {
-			return defaultConfig, nil
+			configWithEnv := parseEnvVariables(defaultConfig)
+			return configWithEnv, nil
 		}
 		err = mergo.Merge(&defaultConfig, envConfig, mergo.WithOverride)
 		if err != nil {
 			return nil, err
 		}
-		return defaultConfig, nil
+		configWithEnv := parseEnvVariables(defaultConfig)
+		return configWithEnv, nil
 	}
-	return defaultConfig, nil
+	configWithEnv := parseEnvVariables(defaultConfig)
+	return configWithEnv, nil
+}
+
+func parseEnvVariables(config map[string]interface{}) map[string]interface{} {
+	for key, value := range config {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			config[key] = parseEnvVariables(v)
+		case string:
+			if strings.HasPrefix(v, "$") {
+				val, ok := os.LookupEnv(strings.TrimLeft(v, "$"))
+				if ok {
+					config[key] = val
+				}
+			}
+		}
+	}
+	return config
 }
