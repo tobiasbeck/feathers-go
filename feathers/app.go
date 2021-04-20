@@ -264,11 +264,13 @@ func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 }
 
 func (a *App) TriggerUpdate(ctx *Context) {
+	// fmt.Printf("TRIGGER UPDATE: %s\n\n", ctx.Path)
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
 			if rooms, err := service.Publish(event, ctx.Result, ctx); err == nil {
 				serviceEvent := fmt.Sprintf("%s %s", ctx.Path, event)
+				fmt.Printf("TRIGGER UPDATE (ROOMS): %v\n\n", rooms)
 				for _, room := range rooms {
 					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Path, ctx.Params.Provider)
 				}

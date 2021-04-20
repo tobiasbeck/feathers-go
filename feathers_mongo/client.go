@@ -15,7 +15,7 @@ import (
 	client is saved to `mongoClient` key in app config
 */
 func ConfigureMongoClient(app *feathers.App, config map[string]interface{}) error {
-
+	feathers.AddStructDecodeHookFunc(MapDecodeMongo())
 	if mongodb, ok := app.Config("mongodb"); ok {
 		if mongoConfig, ok := mongodb.(map[string]interface{}); ok {
 			if uri, ok := mongoConfig["uri"]; ok {

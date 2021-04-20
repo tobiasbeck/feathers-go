@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/mcuadros/go-defaults"
-	"github.com/mitchellh/mapstructure"
 )
 
 func mergeHooks(chainA []Hook, chainB []Hook) []Hook {
@@ -104,7 +103,11 @@ type ModelService struct {
 // MapToModel parses data passed to a service and returns a model instance
 func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, error) {
 	model := m.Model()
-	err := mapstructure.Decode(data, model)
+	decoder, err := newDecoder(model)
+	if err != nil {
+		return nil, err
+	}
+	err = decoder.Decode(data)
 	if err != nil {
 		return nil, err
 	}
@@ -115,28 +118,15 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 // StructToMap converts a model struct into an interface
 func (m *ModelService) StructToMap(data interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-	err := mapstructure.Decode(data, &result)
+	decoder, err := newDecoder(&result)
+	if err != nil {
+		return nil, err
+	}
+	err = decoder.Decode(data)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
-}
-
-// MapToStruct maps service data into a struct (passed by pointer)
-/*
-Example:
-````
-model := Model{}
-err := MapToStruct(data, &model)
-````
-*/
-func MapToStruct(data map[string]interface{}, target interface{}) error {
-	err := mapstructure.Decode(data, target)
-	if err != nil {
-		return err
-	}
-	defaults.SetDefaults(target)
-	return nil
 }
 
 // MapAndValidate is the same as calling `MapToModel` and `ValidateModel`
