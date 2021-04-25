@@ -11,6 +11,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 )
 
 type taskMode string
@@ -165,6 +166,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
+	c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
 	log.Warnln("Unknown Service " + service)
 	return
 }
@@ -219,7 +221,8 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 		return
 	}
 	log.Warnln("Unknown Service " + service)
-	return
+	c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
+
 }
 
 func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
