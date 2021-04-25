@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	gosocketio "github.com/tobiasbeck/feathers-go/gosf-socketio"
 	"github.com/tobiasbeck/feathers-go/gosf-socketio/transport"
 )
@@ -69,7 +70,6 @@ func (c *socketCaller) Callback(data interface{}) {
 
 func (c *socketCaller) CallbackError(data error) {
 	c.errorResponse <- data
-	close(c.errorResponse)
 }
 
 func (c *socketCaller) IsSocket() bool {
@@ -150,15 +150,26 @@ func (fs *SocketIOProvider) Listen(port int, serveMux *http.ServeMux) {
 }
 
 func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, response chan<- interface{}, responseErr chan<- error, data []interface{}) {
+	if len(data) <= 0 {
+		go func() {
+			responseErr <- feathers_error.NewBadRequest("Service not defined")
+		}()
+		return
+	}
 	serviceType := reflect.TypeOf(data[0])
 	if serviceType.String() != "string" {
+		go func() {
+			responseErr <- feathers_error.NewBadRequest("Service name not string")
+		}()
 		return
 	}
 
 	connection, ok := fs.connections[c.Id()]
 
 	if !ok {
-		responseErr <- errors.New("Connection is not registered")
+		go func() {
+			responseErr <- feathers_error.NewBadRequest("Connection is not registered")
+		}()
 		return
 	}
 
@@ -171,30 +182,31 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 	}
 
 	callMethod := stringToCallmethod(event)
-	var reqData map[string]interface{}
+	var reqData map[string]interface{} = map[string]interface{}{}
 	reqQuery := make(map[string]interface{})
-	var id string
-
-	switch v := data[1].(type) {
-	case string:
-		id = data[1].(string)
-		if len(data) >= 3 {
-			if secondData, ok := data[2].(map[string]interface{}); ok {
-				reqQuery = filterData(dl_query, callMethod, secondData)
-				reqData = filterData(dl_data, callMethod, secondData)
+	var id string = ""
+	if len(data) >= 2 {
+		switch v := data[1].(type) {
+		case string:
+			id = data[1].(string)
+			if len(data) >= 3 {
+				if secondData, ok := data[2].(map[string]interface{}); ok {
+					reqQuery = filterData(dl_query, callMethod, secondData)
+					reqData = filterData(dl_data, callMethod, secondData)
+				}
 			}
-		}
-	case nil:
-		id = ""
-		if len(data) >= 3 {
-			if secondData, ok := data[2].(map[string]interface{}); ok {
-				reqQuery = filterData(dl_query, callMethod, secondData)
-				reqData = filterData(dl_data, callMethod, secondData)
+		case nil:
+			id = ""
+			if len(data) >= 3 {
+				if secondData, ok := data[2].(map[string]interface{}); ok {
+					reqQuery = filterData(dl_query, callMethod, secondData)
+					reqData = filterData(dl_data, callMethod, secondData)
+				}
 			}
+		case map[string]interface{}:
+			reqQuery = filterData(dl_query, callMethod, v)
+			reqData = filterData(dl_data, callMethod, v)
 		}
-	case map[string]interface{}:
-		reqQuery = filterData(dl_query, callMethod, v)
-		reqData = filterData(dl_data, callMethod, v)
 	}
 	if len(data) >= 4 {
 		reqQuery = data[3].(map[string]interface{})

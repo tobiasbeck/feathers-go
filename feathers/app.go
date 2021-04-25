@@ -173,7 +173,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 
 // HandleRequest handles a request received by a provider. It starts the pipeline and schedules tasks
 func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
-	// fmt.Printf("Request:\n  service: %s\n  method: %s\n  data: %+v\n\n", service, method, data)
+	// fmt.Printf("Request:\n  service: %s\n  method: %s\n  data: %+v\n query: %+v\n\n", service, method, data, query)
 	if serviceInstance, ok := a.services[service]; ok {
 		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		go func() {
@@ -220,9 +220,11 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
-	log.Warnln("Unknown Service " + service)
-	c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
-
+	go func() {
+		log.Warnln("Unknown Service" + service)
+		c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
+	}()
+	return
 }
 
 func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
@@ -273,7 +275,6 @@ func (a *App) TriggerUpdate(ctx *Context) {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
 			if rooms, err := service.Publish(event, ctx.Result, ctx); err == nil {
 				serviceEvent := fmt.Sprintf("%s %s", ctx.Path, event)
-				fmt.Printf("TRIGGER UPDATE (ROOMS): %v\n\n", rooms)
 				for _, room := range rooms {
 					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Path, ctx.Params.Provider)
 				}

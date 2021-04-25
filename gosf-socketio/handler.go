@@ -139,7 +139,6 @@ func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
 		} else {
 			resultData = result[0].Interface()
 		}
-
 		send(ack, c, resultData, err)
 
 	case protocol.MessageTypeAckResponse:
