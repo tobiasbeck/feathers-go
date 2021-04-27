@@ -184,7 +184,7 @@ func (c *Context) DataGet(key ...string) interface{} {
 
 func (c *Context) DataHas(key ...string) bool {
 	val, ok := lookup.Lookup(c.Data, key...)
-	if ok == nil && !val.IsNil() {
+	if ok == nil && !val.IsZero() {
 		return true
 	}
 	return false

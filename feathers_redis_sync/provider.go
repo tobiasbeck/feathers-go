@@ -53,7 +53,7 @@ func (rs *RedisSync) Listen(port int, mux *http.ServeMux) {
 				// TODO: Better context
 				params := feathers.NewParams(context.Background())
 				params.Provider = "redis-sync"
-				service, _ := rs.app.ServiceClass(data.Path)
+				service := rs.app.ServiceClass(data.Path)
 				triggerContext := &feathers.Context{
 					App:     *rs.app,
 					Data:    data.Data.(map[string]interface{}),

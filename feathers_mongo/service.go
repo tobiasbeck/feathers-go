@@ -144,7 +144,11 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 	if timestampable, ok := model.(Timestampable); ok {
 		timestampable.SetCreatedAt()
 	}
-
+	if idDoc, ok := model.(IdDocument); ok {
+		if idDoc.IDIsZero() {
+			idDoc.GenerateID()
+		}
+	}
 	if collection, ok := f.collection(); ok {
 		result, err := collection.InsertOne(params.CallContext, model)
 		if err != nil {

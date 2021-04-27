@@ -2,7 +2,6 @@ package feathers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -302,13 +301,17 @@ func (a *App) handleHookChain(ctx *Context, chainType HookType, service Service)
 }
 
 func (a *App) handlePipelineError(err error, ctx *Context, service Service, c Caller) {
-	ctx.Error = err
+	featherError := err
+	if _, ok := err.(feathers_error.FeathersError); !ok {
+		featherError = feathers_error.Convert(err)
+	}
+	ctx.Error = featherError
 	ctx, chainErr := a.handleHookChain(ctx, Error, service)
 	if chainErr != nil {
 		c.CallbackError(chainErr)
 		return
 	}
-	c.CallbackError(err)
+	c.CallbackError(ctx.Error)
 }
 
 // PublishToProviders publishes a event to all providers. Each can decide what to do with the publish by themselfs
@@ -390,11 +393,11 @@ func (a *App) Service(name string) Service {
 /*
 This is useful for parsing a service to a specific interface or struct for calling custom service methods
 */
-func (a *App) ServiceClass(name string) (interface{}, error) {
+func (a *App) ServiceClass(name string) interface{} {
 	if service, ok := a.services[name]; ok {
-		return service, nil
+		return service
 	}
-	return nil, errors.New("Service does not exist")
+	return nil
 }
 
 // NewApp returns a new feathers-go app instance
