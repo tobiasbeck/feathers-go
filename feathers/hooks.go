@@ -174,6 +174,13 @@ type Context struct {
 	Params Params
 }
 
+// DataMerge merges new data with already existing data
+func (c *Context) DataMerge(data Data) {
+	for key, value := range data {
+		c.Data[key] = value
+	}
+}
+
 func (c *Context) DataGet(key ...string) interface{} {
 	val, ok := lookup.Lookup(c.Data, key...)
 	if ok != nil {
