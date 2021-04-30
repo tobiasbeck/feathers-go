@@ -61,9 +61,22 @@ func ObjectIDEquals(id interface{}, id2 interface{}) bool {
 }
 
 func MapDecodeMongo() mapstructure.DecodeHookFunc {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	return func(s reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if s == reflect.TypeOf(primitive.ObjectID{}) {
+			fObjId := data.(primitive.ObjectID)
+			// fmt.Printf("CHECK 1 %s, %s --> %s\n\n", fObjId, s.Name(), t.Name())
+			if fObjId == primitive.NilObjectID {
+				// rf := reflect.ValueOf(data)
+				// fmt.Printf("is Nil %+v\n\n", [0]byte{})
+				return nil, nil
+			}
+			if t.Kind() == reflect.String {
+				return fObjId.Hex(), nil
+			}
+			return data, nil
+		}
 		// fmt.Println("DECODE MONGO CALL", f.Name(), t.Name())
-		if f.Kind() != reflect.String {
+		if s.Kind() != reflect.String {
 			return data, nil
 		}
 		if t != reflect.TypeOf(primitive.ObjectID{}) {
@@ -73,6 +86,7 @@ func MapDecodeMongo() mapstructure.DecodeHookFunc {
 		if err != nil {
 			return nil, err
 		}
+		// fmt.Printf("Add mongoId %s\n\n", result)
 		return result, nil
 	}
 }

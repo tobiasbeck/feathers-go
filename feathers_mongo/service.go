@@ -155,6 +155,7 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 			return nil, err
 		}
 		modelMap, err := f.StructToMap(model)
+		fmt.Printf("modelMAp: %#v\n", modelMap)
 		if err != nil {
 			return nil, err
 		}

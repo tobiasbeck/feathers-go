@@ -22,3 +22,5 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/mitchellh/mapstructure => github.com/tobiasbeck/mapstructure v1.4.2-0.20210430163446-32c3824207e0

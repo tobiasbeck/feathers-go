@@ -15,6 +15,12 @@ type Document struct {
 	ID primitive.ObjectID `bson:"_id" mapstructure:"_id"`
 }
 
+func NewDocument() *Document {
+	return &Document{
+		ID: primitive.NewObjectID(),
+	}
+}
+
 func (d *Document) GenerateID() {
 	d.ID = primitive.NewObjectID()
 }
