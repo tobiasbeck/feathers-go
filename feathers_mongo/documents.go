@@ -35,14 +35,14 @@ type Timestampable interface {
 }
 
 type TimestampDoc struct {
-	CreatedAt time.Time `bson:"createdAt" mapstructure:"createdAt"`
-	UpdatedAt time.Time `bson:"updatedAt" mapstructure:"updatedAt"`
+	CreatedAt primitive.DateTime `bson:"createdAt" mapstructure:"createdAt"`
+	UpdatedAt primitive.DateTime `bson:"updatedAt" mapstructure:"updatedAt"`
 }
 
 func (td *TimestampDoc) SetCreatedAt() {
-	td.CreatedAt = time.Now()
+	td.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 }
 
 func (td *TimestampDoc) SetUpdatedAt() {
-	td.UpdatedAt = time.Now()
+	td.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 }

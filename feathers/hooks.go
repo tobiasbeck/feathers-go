@@ -2,8 +2,11 @@ package feathers
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/mcuadros/go-lookup"
+	"github.com/mitchellh/mapstructure"
 )
 
 // RestMethod represents the method which was called
@@ -73,11 +76,7 @@ type Params struct {
 	IsSocket bool
 	// Headers from client call
 	Headers map[string]string
-	// CallContext is a context passed through the whole execution. use this to derive your own contexts or pass it to calls requiring context
-	CallContext context.Context
-	// CallContextCancel is the cancel function of CallContext (called by system)
-	CallContextCancel context.CancelFunc
-	fields            map[string]interface{}
+	fields  map[string]interface{}
 	// Query conatains query fields specified by client
 	Query Query
 
@@ -114,37 +113,30 @@ func (hc *Params) Set(key string, value interface{}) {
 	hc.fields[key] = value
 }
 
-// WithQuery creates new Params with given query only passing same CallContext
-func (p *Params) WithQuery(query map[string]interface{}) *Params {
-	return NewParamsQuery(p.CallContext, query)
+func (hc *Params) New() Params {
+	return *NewParams()
 }
 
-// WithQuery creates new Params only passing same CallContext
-func (p *Params) WithContext() *Params {
-	return NewParams(p.CallContext)
+func (hc *Params) NewWithQuery(query map[string]interface{}) Params {
+	return *NewParamsQuery(query)
 }
 
 // NewParams creates a empty params struct
-func NewParams(ctx context.Context) *Params {
-	callContext, cancel := context.WithCancel(ctx)
+func NewParams() *Params {
 	return &Params{
-		CallContext:       callContext,
-		CallContextCancel: cancel,
-		Params:            make(map[string]interface{}),
-		fields:            make(map[string]interface{}),
-		Query:             make(map[string]interface{}),
+		Params: make(map[string]interface{}),
+		fields: make(map[string]interface{}),
+		Query:  make(map[string]interface{}),
 	}
 }
 
 // NewParamsQuery returns a new HookParms struct only containng specified query
-func NewParamsQuery(ctx context.Context, query map[string]interface{}) *Params {
-	callContext, cancel := context.WithCancel(ctx)
+func NewParamsQuery(query map[string]interface{}) *Params {
+
 	return &Params{
-		CallContext:       callContext,
-		CallContextCancel: cancel,
-		Params:            make(map[string]interface{}),
-		fields:            make(map[string]interface{}),
-		Query:             query,
+		Params: make(map[string]interface{}),
+		fields: make(map[string]interface{}),
+		Query:  query,
 	}
 }
 
@@ -158,19 +150,31 @@ type Data = map[string]interface{}
 // 	return value.Interface()
 // }
 
-// Context is the context which is passed to every go-feathers hook
+// Context is the context which is passed to every go-feathers hook (Can be used as context.Context)
 type Context struct {
-	App        App
-	Data       Data
-	Error      error
-	ID         string
-	Method     RestMethod
-	Path       string
-	Result     interface{}
-	Service    interface{}
-	StatusCode int
-	Type       HookType
-
+	context.Context
+	// App is a reference to the current application instance
+	App App
+	// Data is the data passed from the requesting instance
+	Data Data
+	// Error contains the error which was triggered while executing the route
+	Error error
+	// ID is the id passed fromt the requesting instance
+	ID string
+	// Method containts the method which was called (Get, Patch, Find, etc.)
+	Method RestMethod
+	// Path is the path to the service
+	Path string
+	// Result is the result of the service call (only defined in after hooks)
+	Result interface{}
+	// Service is the called service, but wrapped by the application to also trigger hooks (If you wanna call service class directly for custom methods use ServiceClass)
+	Service Service
+	// ServiceClass is the current service without the wrapper. Do NOT Call Patch, Find, Get, Remove and Update since they do not call hooks!
+	ServiceClass interface{}
+	StatusCode   int
+	// Type of the hook (Before or after)
+	Type HookType
+	// Params for this call
 	Params Params
 }
 
@@ -179,6 +183,19 @@ func (c *Context) DataMerge(data Data) {
 	for key, value := range data {
 		c.Data[key] = value
 	}
+}
+
+// DataDecode decodes data at `path` to target (pointer)
+func (c *Context) DataDecode(target interface{}, path ...string) error {
+	data := c.DataGet(path...)
+	if data == nil {
+		return errors.New("Data at path not defined")
+	}
+	err := mapstructure.Decode(data, target)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Context) DataGet(key ...string) interface{} {
@@ -195,6 +212,22 @@ func (c *Context) DataHas(key ...string) bool {
 		return true
 	}
 	return false
+}
+
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
+	return c.Context.Deadline()
+}
+
+func (c *Context) Done() <-chan struct{} {
+	return c.Context.Done()
+}
+
+func (c *Context) Err() error {
+	return c.Context.Err()
+}
+
+func (c *Context) Value(key interface{}) interface{} {
+	return c.Context.Value(key)
 }
 
 // Hook is a function which can be used to modify request params

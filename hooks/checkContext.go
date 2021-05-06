@@ -18,7 +18,7 @@ func CheckContext(ctx *feathers.Context, hookName string, allowedTypes []feather
 			}
 		}
 		if found == false {
-			return errors.New("You cannot use " + hookName + " as " + ctx.Method.String() + " hook")
+			return errors.New("You cannot use " + hookName + " as " + ctx.Type.String() + " hook")
 		}
 	}
 

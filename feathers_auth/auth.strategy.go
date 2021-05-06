@@ -1,6 +1,7 @@
 package feathers_auth
 
 import (
+	"context"
 	"errors"
 
 	defaults "github.com/mcuadros/go-defaults"
@@ -14,7 +15,7 @@ type DefaultAuthConfig struct {
 }
 
 type AuthStrategy interface {
-	Authenticate(data Model, params feathers.Params) (map[string]interface{}, error)
+	Authenticate(ctx context.Context, data Model, params feathers.Params) (map[string]interface{}, error)
 	SetApp(app *feathers.App)
 	SetName(name string)
 	SetConfiguration(config map[string]interface{})

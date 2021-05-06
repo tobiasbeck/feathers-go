@@ -1,6 +1,7 @@
 package feathers_auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -42,14 +43,14 @@ func tokenType(tpe string) jwt.SignOption {
 	}
 }
 
-func (as *AuthService) Create(data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (as *AuthService) Create(ctx context.Context, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	model := Model{}
 	err := as.MapAndValidateStruct(data, &model)
 	if err != nil {
 		return nil, feathers_error.Convert(err)
 	}
 	if strategy, ok := as.authStrategies[model.Strategy]; ok {
-		result, err := strategy.Authenticate(model, params)
+		result, err := strategy.Authenticate(ctx, model, params)
 		if err != nil {
 			return nil, feathers_error.Convert(err)
 		}
@@ -80,23 +81,23 @@ func (as *AuthService) Create(data map[string]interface{}, params feathers.Param
 }
 
 // Remove TODO Add implementation
-func (as *AuthService) Remove(id string, params feathers.Params) (interface{}, error) {
+func (as *AuthService) Remove(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
-func (as *AuthService) Find(params feathers.Params) (interface{}, error) {
+func (as *AuthService) Find(ctx context.Context, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
-func (as *AuthService) Get(id string, params feathers.Params) (interface{}, error) {
+func (as *AuthService) Get(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
-func (as *AuthService) Patch(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (as *AuthService) Patch(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
-func (as *AuthService) Update(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (as *AuthService) Update(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 

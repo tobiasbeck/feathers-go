@@ -1,6 +1,7 @@
 package feathers_mongo
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -69,7 +70,7 @@ type Service struct {
 
 // Service routes
 
-func (f *Service) Find(params feathers.Params) (interface{}, error) {
+func (f *Service) Find(ctx context.Context, params feathers.Params) (interface{}, error) {
 	if collection, ok := f.collection(); ok {
 		filters, findOpts, err := f.prepareFilter("", params.Query)
 		if err != nil {
@@ -82,13 +83,13 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 			queryOptions.SetLimit(int64(limit.(int)))
 		}
 		// fmt.Printf("QUERY: %#v\n\n", filters)
-		result, err := collection.Find(params.CallContext, filters, queryOptions)
+		result, err := collection.Find(ctx, filters, queryOptions)
 		if err != nil {
 			return nil, err
 		}
 
 		var returnData []map[string]interface{}
-		err = result.All(params.CallContext, &returnData)
+		err = result.All(ctx, &returnData)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func (f *Service) Find(params feathers.Params) (interface{}, error) {
 	}
 	return nil, notReady()
 }
-func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
+func (f *Service) Get(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
 	if collection, ok := f.collection(); ok {
 
 		query, _, err := f.prepareFilter(id, params.Query)
@@ -111,13 +112,13 @@ func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 		queryOptions := options.Find()
 		queryOptions.SetLimit(int64(1))
 
-		result, err := collection.Find(params.CallContext, query, queryOptions)
+		result, err := collection.Find(ctx, query, queryOptions)
 		if err != nil {
 			return nil, err
 		}
 
 		var returnData []map[string]interface{}
-		err = result.All(params.CallContext, &returnData)
+		err = result.All(ctx, &returnData)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +131,7 @@ func (f *Service) Get(id string, params feathers.Params) (interface{}, error) {
 	return nil, notReady()
 }
 
-func (f *Service) Create(data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (f *Service) Create(ctx context.Context, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	model, err := f.MapToModel(data)
 	if err != nil {
 		return nil, err
@@ -143,6 +144,7 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 
 	if timestampable, ok := model.(Timestampable); ok {
 		timestampable.SetCreatedAt()
+		timestampable.SetUpdatedAt()
 	}
 	if idDoc, ok := model.(IdDocument); ok {
 		if idDoc.IDIsZero() {
@@ -150,12 +152,11 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 		}
 	}
 	if collection, ok := f.collection(); ok {
-		result, err := collection.InsertOne(params.CallContext, model)
+		result, err := collection.InsertOne(ctx, model)
 		if err != nil {
 			return nil, err
 		}
 		modelMap, err := f.StructToMap(model)
-		fmt.Printf("modelMAp: %#v\n", modelMap)
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +169,7 @@ func (f *Service) Create(data map[string]interface{}, params feathers.Params) (i
 	return nil, notReady()
 }
 
-func (f *Service) Update(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (f *Service) Update(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	model, err := f.MapAndValidate(data)
 	if err != nil {
 		return nil, err
@@ -184,7 +185,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 			return nil, err
 		}
 
-		result, err := collection.ReplaceOne(params.CallContext, query, model)
+		result, err := collection.ReplaceOne(ctx, query, model)
 		modelMap, err := f.StructToMap(model)
 		if err != nil {
 			return nil, err
@@ -198,7 +199,7 @@ func (f *Service) Update(id string, data map[string]interface{}, params feathers
 	return nil, notReady()
 }
 
-func (f *Service) Patch(id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
+func (f *Service) Patch(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 
 	if collection, ok := f.collection(); ok {
 		query, _, err := f.prepareFilter(id, params.Query)
@@ -214,14 +215,14 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 			opts.SetUpsert(true)
 		}
 
-		result, err := collection.UpdateOne(params.CallContext, query, replacement, opts)
+		result, err := collection.UpdateOne(ctx, query, replacement, opts)
 		if err != nil {
 			return nil, err
 		}
 		if result.MatchedCount == 0 && result.UpsertedCount == 0 {
 			return nil, nil
 		}
-		findResult := collection.FindOne(params.CallContext, query)
+		findResult := collection.FindOne(ctx, query)
 		var document map[string]interface{}
 		err = findResult.Decode(&document)
 		if err != nil {
@@ -232,21 +233,21 @@ func (f *Service) Patch(id string, data map[string]interface{}, params feathers.
 	return nil, notReady()
 }
 
-func (f *Service) Remove(id string, params feathers.Params) (interface{}, error) {
+func (f *Service) Remove(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
 	if collection, ok := f.collection(); ok {
 		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
 		}
 
-		findResult := collection.FindOne(params.CallContext, query)
+		findResult := collection.FindOne(ctx, query)
 		var document map[string]interface{}
 		err = findResult.Decode(&document)
 		if err != nil {
 			return nil, err
 		}
 
-		deleteResult, err := collection.DeleteOne(params.CallContext, query)
+		deleteResult, err := collection.DeleteOne(ctx, query)
 		if err != nil {
 			return nil, err
 		}

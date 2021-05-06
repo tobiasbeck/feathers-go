@@ -1,7 +1,6 @@
 package feathers_redis_sync
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -51,19 +50,21 @@ func (rs *RedisSync) Listen(port int, mux *http.ServeMux) {
 					continue
 				}
 				// TODO: Better context
-				params := feathers.NewParams(context.Background())
+				params := feathers.NewParams()
 				params.Provider = "redis-sync"
-				service := rs.app.ServiceClass(data.Path)
+				service := rs.app.Service(data.Path)
+				serviceClass := rs.app.ServiceClass(data.Path)
 				triggerContext := &feathers.Context{
-					App:     *rs.app,
-					Data:    data.Data.(map[string]interface{}),
-					Result:  data.Data,
-					Method:  data.Context.Method,
-					Path:    data.Path,
-					ID:      data.Context.ID,
-					Service: service,
-					Type:    data.Context.Type,
-					Params:  *params,
+					App:          *rs.app,
+					Data:         data.Data.(map[string]interface{}),
+					Result:       data.Data,
+					Method:       data.Context.Method,
+					Path:         data.Path,
+					ID:           data.Context.ID,
+					Service:      service,
+					ServiceClass: serviceClass,
+					Type:         data.Context.Type,
+					Params:       *params,
 				}
 
 				rs.app.TriggerUpdate(triggerContext)

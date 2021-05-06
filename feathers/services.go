@@ -1,6 +1,7 @@
 package feathers
 
 import (
+	"context"
 	"strings"
 
 	"github.com/go-playground/validator"
@@ -19,20 +20,26 @@ func mergeHooks(chainA []Hook, chainB []Hook) []Hook {
 //Service  is a callable instance inside feathers which is responslible for a single kind of entity
 type Service interface {
 	// Find retrieves multiple entities (`interface{} is a slice`)
-	Find(params Params) (interface{}, error)
+	Find(ctx context.Context, params Params) (interface{}, error)
 	// Get retrives a single entity
-	Get(id string, params Params) (interface{}, error)
+	Get(ctx context.Context, id string, params Params) (interface{}, error)
 	// Create creates a new entity should be created
-	Create(data map[string]interface{}, params Params) (interface{}, error)
+	Create(ctx context.Context, data map[string]interface{}, params Params) (interface{}, error)
 	// Update replaces a whole entity
-	Update(id string, data map[string]interface{}, params Params) (interface{}, error)
+	Update(ctx context.Context, id string, data map[string]interface{}, params Params) (interface{}, error)
 	// Patch updates or replaces specified entity keys
-	Patch(id string, data map[string]interface{}, params Params) (interface{}, error)
+	Patch(ctx context.Context, id string, data map[string]interface{}, params Params) (interface{}, error)
 	// Remove removes a entity
-	Remove(id string, params Params) (interface{}, error)
+	Remove(ctx context.Context, id string, params Params) (interface{}, error)
 
-	//HookTree returns the hook tree (mainly uses internally)
+	// HookTree returns the hook tree (mainly uses internally)
 	HookTree() HooksTree
+
+	// Name returns the name of the current service
+	Name() string
+
+	// setName sets a service name (used internally)
+	setName(name string)
 }
 
 // HooksTreeBranch is a single branch of hooks (e.g. for Before, After or Error)
@@ -84,6 +91,15 @@ func (t HooksTree) Branch(branchType HookType) HooksTreeBranch {
 // BaseService (every service should extend from this)
 type BaseService struct {
 	Hooks HooksTree
+	name  string
+}
+
+func (b *BaseService) Name() string {
+	return b.name
+}
+
+func (b *BaseService) setName(name string) {
+	b.name = name
 }
 
 // HookTree returns hook tree of service
@@ -195,29 +211,29 @@ type appService struct {
 	name    string
 }
 
-func (as *appService) Find(params Params) (interface{}, error) {
+func (as *appService) Find(ctx context.Context, params Params) (interface{}, error) {
 
-	return as.callMethod(Find, map[string]interface{}{}, "", params)
+	return as.callMethod(ctx, Find, map[string]interface{}{}, "", params)
 }
 
-func (as *appService) Get(id string, params Params) (interface{}, error) {
-	return as.callMethod(Get, map[string]interface{}{}, id, params)
+func (as *appService) Get(ctx context.Context, id string, params Params) (interface{}, error) {
+	return as.callMethod(ctx, Get, map[string]interface{}{}, id, params)
 }
 
-func (as *appService) Create(data map[string]interface{}, params Params) (interface{}, error) {
-	return as.callMethod(Create, data, "", params)
+func (as *appService) Create(ctx context.Context, data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(ctx, Create, data, "", params)
 }
 
-func (as *appService) Update(id string, data map[string]interface{}, params Params) (interface{}, error) {
-	return as.callMethod(Update, data, id, params)
+func (as *appService) Update(ctx context.Context, id string, data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(ctx, Update, data, id, params)
 }
 
-func (as *appService) Patch(id string, data map[string]interface{}, params Params) (interface{}, error) {
-	return as.callMethod(Patch, data, id, params)
+func (as *appService) Patch(ctx context.Context, id string, data map[string]interface{}, params Params) (interface{}, error) {
+	return as.callMethod(ctx, Patch, data, id, params)
 }
 
-func (as *appService) Remove(id string, params Params) (interface{}, error) {
-	return as.callMethod(Remove, map[string]interface{}{}, id, params)
+func (as *appService) Remove(ctx context.Context, id string, params Params) (interface{}, error) {
+	return as.callMethod(ctx, Remove, map[string]interface{}{}, id, params)
 }
 
 func (as *appService) HookTree() HooksTree {
@@ -225,13 +241,37 @@ func (as *appService) HookTree() HooksTree {
 	return as.service.HookTree()
 }
 
-func (as *appService) callMethod(method RestMethod, data map[string]interface{}, id string, params Params) (interface{}, error) {
+func (as *appService) Name() string {
+	return as.service.Name()
+}
+
+func (as *appService) setName(name string) {
+	// Does nothing
+}
+
+// RegisterPublishHandler registers a new handler for a topic
+func (s *appService) RegisterPublishHandler(topic string, handler PublishHandler) {
+	if ps, ok := s.service.(PublishableService); ok {
+		ps.RegisterPublishHandler(topic, handler)
+	}
+}
+
+// Publish calls PublishHandler if registerd and publishes data to returned topics
+func (s *appService) Publish(topic string, data interface{}, ctx *Context) ([]string, error) {
+	if ps, ok := s.service.(PublishableService); ok {
+		result, err := ps.Publish(topic, data, ctx)
+		return result, err
+	}
+	return []string{}, nil
+}
+
+func (as *appService) callMethod(ctx context.Context, method RestMethod, data map[string]interface{}, id string, params Params) (interface{}, error) {
 	caller := &appServiceCaller{
 		success: make(chan interface{}, 0),
 		err:     make(chan error, 0),
 	}
 
-	as.app.handleServerServiceCall(as.name, method, caller, data, id, params)
+	as.app.handleServerServiceCall(ctx, as.name, method, caller, data, id, params)
 	select {
 	case result := <-caller.success:
 		return result, nil

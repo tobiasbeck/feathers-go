@@ -67,7 +67,7 @@ func filterData(location locationType, method RestMethod, data map[string]interf
 }
 
 func paramContextCancelled(ctx Context) bool {
-	context := ctx.Params.CallContext
+	context := ctx.Context
 	if context.Err() == nil {
 		return false
 	}
@@ -141,6 +141,7 @@ func (a *App) AddService(name string, service Service) {
 	a.servicesLock.Lock()
 	defer a.servicesLock.Unlock()
 	a.services[name] = service
+	service.setName(name)
 }
 
 // Startup setups execution pool of go routines for pipeline execution
@@ -150,17 +151,19 @@ func (a *App) AddService(name string, service Service) {
 // 	}
 // }
 
-func (a *App) handleServerServiceCall(service string, method RestMethod, c Caller, data interface{}, id string, params Params) {
+func (a *App) handleServerServiceCall(ctx context.Context, service string, method RestMethod, c Caller, data interface{}, id string, params Params) {
 	if serviceInstance, ok := a.services[service]; ok {
 		initContext := Context{
-			App:     *a,
-			Data:    data.(map[string]interface{}),
-			Method:  method,
-			Path:    service,
-			ID:      id,
-			Service: serviceInstance,
-			Type:    Before,
-			Params:  params,
+			Context:      ctx,
+			App:          *a,
+			Data:         data.(map[string]interface{}),
+			Method:       method,
+			Path:         service,
+			ID:           id,
+			Service:      a.Service(service),
+			ServiceClass: serviceInstance,
+			Type:         Before,
+			Params:       params,
 		}
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
@@ -174,7 +177,7 @@ func (a *App) handleServerServiceCall(service string, method RestMethod, c Calle
 func (a *App) HandleRequest(provider string, method RestMethod, c Caller, service string, data map[string]interface{}, id string, query map[string]interface{}) {
 	// fmt.Printf("Request:\n  service: %s\n  method: %s\n  data: %+v\n query: %+v\n\n", service, method, data, query)
 	if serviceInstance, ok := a.services[service]; ok {
-		context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		context, _ := context.WithTimeout(context.Background(), 5*time.Second)
 		go func() {
 			<-context.Done()
 		}()
@@ -194,26 +197,26 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 		}
 
 		initContext := Context{
-			App:     *a,
-			Data:    data,
-			Method:  method,
-			Path:    service,
-			ID:      id,
-			Service: serviceInstance,
-			Type:    Before,
+			Context:      context,
+			App:          *a,
+			Data:         data,
+			Method:       method,
+			Path:         service,
+			ID:           id,
+			Service:      a.Service(service),
+			ServiceClass: serviceInstance,
+			Type:         Before,
 			Params: Params{
-				Params:            make(map[string]interface{}),
-				Provider:          provider,
-				Route:             service,
-				CallContext:       context,
-				Connection:        c.SocketConnection(),
-				IsSocket:          c.IsSocket(),
-				User:              user,
-				CallContextCancel: cancel,
-				Headers:           make(map[string]string),
-				fields:            make(map[string]interface{}),
-				Query:             query,
-				Authenticated:     authenticated,
+				Params:        make(map[string]interface{}),
+				Provider:      provider,
+				Route:         service,
+				Connection:    c.SocketConnection(),
+				IsSocket:      c.IsSocket(),
+				User:          user,
+				Headers:       make(map[string]string),
+				fields:        make(map[string]interface{}),
+				Query:         query,
+				Authenticated: authenticated,
 			},
 		}
 		go a.handlePipeline(&initContext, serviceInstance, c)
@@ -239,17 +242,17 @@ func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 		var result interface{}
 		switch ctx.Method {
 		case Create:
-			result, err = service.Create(ctx.Data, ctx.Params)
+			result, err = service.Create(ctx, ctx.Data, ctx.Params)
 		case Update:
-			result, err = service.Update(ctx.ID, ctx.Data, ctx.Params)
+			result, err = service.Update(ctx, ctx.ID, ctx.Data, ctx.Params)
 		case Patch:
-			result, err = service.Patch(ctx.ID, ctx.Data, ctx.Params)
+			result, err = service.Patch(ctx, ctx.ID, ctx.Data, ctx.Params)
 		case Remove:
-			result, err = service.Remove(ctx.ID, ctx.Params)
+			result, err = service.Remove(ctx, ctx.ID, ctx.Params)
 		case Find:
-			result, err = service.Find(ctx.Params)
+			result, err = service.Find(ctx, ctx.Params)
 		case Get:
-			result, err = service.Get(ctx.ID, ctx.Params)
+			result, err = service.Get(ctx, ctx.ID, ctx.Params)
 		}
 		if err != nil {
 			a.handlePipelineError(err, ctx, service, c)
@@ -269,6 +272,7 @@ func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 
 func (a *App) TriggerUpdate(ctx *Context) {
 	// fmt.Printf("TRIGGER UPDATE: %s\n\n", ctx.Path)
+	// fmt.Printf("Service: %T\n", ctx.ServiceClass)
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {

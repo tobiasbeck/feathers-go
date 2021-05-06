@@ -1,6 +1,8 @@
 package feathers_auth_local
 
 import (
+	"context"
+
 	"github.com/tobiasbeck/feathers-go/feathers"
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	"github.com/tobiasbeck/feathers-go/feathers_auth"
@@ -16,14 +18,14 @@ type Strategy struct {
 	*feathers_auth.BaseAuthStrategy
 }
 
-func (s *Strategy) findEntity(username string, params feathers.Params) (map[string]interface{}, error) {
+func (s *Strategy) findEntity(ctx context.Context, username string, params feathers.Params) (map[string]interface{}, error) {
 	config := strategyConfig{}
 	s.StrategyConfig(&config)
 	if service, ok := s.EntityService(); ok {
 		query := map[string]interface{}{}
 		query[config.UsernameField] = username
-		findParams := feathers.NewParamsQuery(params.CallContext, query)
-		iResults, err := service.Find(*findParams)
+		findParams := feathers.NewParamsQuery(query)
+		iResults, err := service.Find(ctx, *findParams)
 		if err != nil {
 			return nil, feathers_error.NewNotAuthenticated(err.Error(), nil)
 		}
@@ -59,12 +61,12 @@ func (s *Strategy) comparePassword(entity map[string]interface{}, password strin
 	return false
 }
 
-func (s *Strategy) Authenticate(data feathers_auth.Model, params feathers.Params) (map[string]interface{}, error) {
+func (s *Strategy) Authenticate(ctx context.Context, data feathers_auth.Model, params feathers.Params) (map[string]interface{}, error) {
 	config := strategyConfig{}
 	s.StrategyConfig(&config)
 	defaultConfig := s.DefaultConfig()
 	// fmt.Printf("data: %s, %#v\n", config.UsernameField, data)
-	entity, err := s.findEntity(data.Params[config.UsernameField].(string), params)
+	entity, err := s.findEntity(ctx, data.Params[config.UsernameField].(string), params)
 	if err != nil {
 		return nil, err
 	}

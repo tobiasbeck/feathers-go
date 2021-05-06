@@ -1,6 +1,7 @@
 package feathers_auth
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -14,7 +15,7 @@ type JwtStrategy struct {
 	*BaseAuthStrategy
 }
 
-func (s *JwtStrategy) Authenticate(data Model, params feathers.Params) (map[string]interface{}, error) {
+func (s *JwtStrategy) Authenticate(ctx context.Context, data Model, params feathers.Params) (map[string]interface{}, error) {
 	defaultConfig := s.DefaultConfig()
 	if jwtConfig, ok := s.config["jwtOptions"]; ok {
 		if token, ok := data.Params["accessToken"]; ok {
@@ -42,7 +43,7 @@ func (s *JwtStrategy) Authenticate(data Model, params feathers.Params) (map[stri
 			entityID := payload.Subject
 
 			if entityService, ok := s.EntityService(); ok {
-				entity, err := entityService.Get(entityID, *feathers.NewParams(params.CallContext))
+				entity, err := entityService.Get(ctx, entityID, *feathers.NewParams())
 				if err != nil {
 					return nil, err
 				}
