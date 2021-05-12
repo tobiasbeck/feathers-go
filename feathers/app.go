@@ -231,6 +231,13 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 
 func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 	var err error
+
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		c.CallbackError(r.(error))
+	// 	}
+	// }()
+
 	// Before
 	origCtx := ctx
 	ctx, err = a.handleHookChain(ctx, Before, service)

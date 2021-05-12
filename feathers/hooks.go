@@ -3,6 +3,7 @@ package feathers
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/mcuadros/go-lookup"
@@ -178,7 +179,7 @@ type Context struct {
 	Params Params
 }
 
-// DataMerge merges new data with already existing data
+// DataMerge merges new data with already exsting data
 func (c *Context) DataMerge(data Data) {
 	for key, value := range data {
 		c.Data[key] = value
@@ -187,17 +188,19 @@ func (c *Context) DataMerge(data Data) {
 
 // DataDecode decodes data at `path` to target (pointer)
 func (c *Context) DataDecode(target interface{}, path ...string) error {
-	data := c.DataGet(path...)
-	if data == nil {
-		return errors.New("Data at path not defined")
+	var data interface{} = c.Data
+	if len(path) > 0 {
+		data = c.DataGet(path...)
 	}
-	err := mapstructure.Decode(data, target)
+	if data == nil {
+		return errors.New("Data at path '" + strings.Join(path, ".") + "' not defined")
+	}
+	err := mapstructure.WeakDecode(data, target)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
 func (c *Context) DataGet(key ...string) interface{} {
 	val, ok := lookup.Lookup(c.Data, key...)
 	if ok != nil {

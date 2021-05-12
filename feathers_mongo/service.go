@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator"
+	"github.com/pkg/errors"
 	"github.com/tobiasbeck/feathers-go/feathers"
 	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -134,12 +135,12 @@ func (f *Service) Get(ctx context.Context, id string, params feathers.Params) (i
 func (f *Service) Create(ctx context.Context, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 	model, err := f.MapToModel(data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Model Parsing")
 	}
 
 	err = f.ValidateModel(model)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Model Validaton")
 	}
 
 	if timestampable, ok := model.(Timestampable); ok {
@@ -217,7 +218,7 @@ func (f *Service) Patch(ctx context.Context, id string, data map[string]interfac
 
 		result, err := collection.UpdateOne(ctx, query, replacement, opts)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Update Error")
 		}
 		if result.MatchedCount == 0 && result.UpsertedCount == 0 {
 			return nil, nil
@@ -226,7 +227,7 @@ func (f *Service) Patch(ctx context.Context, id string, data map[string]interfac
 		var document map[string]interface{}
 		err = findResult.Decode(&document)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Decode Error")
 		}
 		return document, nil
 	}

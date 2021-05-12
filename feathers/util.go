@@ -39,3 +39,17 @@ func NewEventEmitter() *EventEmitter {
 		eventListeners: make(map[string][]EventListener),
 	}
 }
+
+// StructToMap converts a model struct into an interface
+func StructToMap(data interface{}) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	decoder, err := newDecoder(&result)
+	if err != nil {
+		return nil, err
+	}
+	err = decoder.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
