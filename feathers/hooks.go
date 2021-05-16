@@ -10,6 +10,19 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func deepCopyMap(origMap map[string]interface{}) map[string]interface{} {
+	nM := map[string]interface{}{}
+	for key, value := range origMap {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			nM[key] = deepCopyMap(v)
+		default:
+			nM[key] = v
+		}
+	}
+	return nM
+}
+
 // RestMethod represents the method which was called
 type RestMethod string
 
@@ -116,6 +129,20 @@ func (hc *Params) Set(key string, value interface{}) {
 
 func (hc *Params) New() Params {
 	return *NewParams()
+}
+
+func (hc *Params) Copy() Params {
+	np := *NewParams()
+	np.Provider = hc.Provider
+	np.Route = hc.Route
+	np.Connection = hc.Connection
+	np.Query = hc.Query
+	np.User = hc.User
+	np.Authenticated = hc.Authenticated
+	np.Params = deepCopyMap(hc.Params)
+	// np.Headers = deepCopyMap(hc.Headers)
+	np.fields = deepCopyMap(hc.fields)
+	return np
 }
 
 func (hc *Params) NewWithQuery(query map[string]interface{}) Params {
