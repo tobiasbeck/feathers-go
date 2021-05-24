@@ -1,6 +1,7 @@
 package feathers
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
+	"github.com/pkg/errors"
 	"github.com/tobiasbeck/feathers-go/feathers/yaml"
 )
 
@@ -19,10 +21,44 @@ func LoadConfigFile(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if err := yaml.Unmarshal(yamlFile, &configs); err != nil {
-		log.Fatal(err)
+		log.Fatal(errors.Wrap(err, fmt.Sprintf("FILE: '%s'", path)))
 		return nil, err
 	}
 	return configs.(map[string]interface{}), nil
+}
+
+func fileEnding(name string) string {
+	parts := strings.Split(name, ".")
+	return parts[len(parts)-1]
+}
+
+// LoadConfigDirectory loads a whole directory of .yaml config files.
+func LoadConfigDirectory(dirPath string) (map[string]map[string]interface{}, error) {
+	configs := map[string]map[string]interface{}{}
+	files, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		fmt.Println("FIRST ERROR")
+		return nil, err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		ending := fileEnding(file.Name())
+		if ending != "yaml" {
+			continue
+		}
+		filePath := fmt.Sprintf("%s/%s", dirPath, file.Name())
+		data, err := LoadConfigFile(filePath)
+		key := strings.Split(file.Name(), ".")[0]
+		if err != nil {
+			fmt.Println("FILE RROR")
+			return nil, errors.Wrap(err, "file: "+file.Name())
+		}
+		configs[key] = data
+		fmt.Printf("Co")
+	}
+	return configs, nil
 }
 
 func loadConfig(configPath string) (map[string]interface{}, error) {

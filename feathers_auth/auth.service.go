@@ -101,26 +101,32 @@ func (as *AuthService) Update(ctx context.Context, id string, data map[string]in
 	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
 }
 
+func NewAuthService(app *feathers.App, strategies map[string]AuthStrategy) *AuthService {
+	service := &AuthService{
+		app:            app,
+		BaseService:    &feathers.BaseService{},
+		ModelService:   feathers.NewModelService(NewModel),
+		authStrategies: strategies,
+	}
+	if appConfig, ok := app.Config("authentication"); ok {
+		appMapConfig := appConfig.(map[string]interface{})
+		service.config = appMapConfig
+		for key, strategy := range service.authStrategies {
+			strategy.SetConfiguration(appMapConfig)
+			strategy.SetApp(app)
+			strategy.SetName(key)
+		}
+		service.encryption = jwt.NewHS256([]byte(service.config["secret"].(string)))
+	} else {
+		panic("No app configuration of auth is set")
+	}
+	return service
+}
+
 func Configure(app *feathers.App, config map[string]interface{}) error {
 	if strategies, ok := config["strategies"]; ok {
-		service := &AuthService{
-			app:            app,
-			BaseService:    &feathers.BaseService{},
-			ModelService:   feathers.NewModelService(NewModel),
-			authStrategies: strategies.(map[string]AuthStrategy),
-		}
-		if appConfig, ok := app.Config("authentication"); ok {
-			appMapConfig := appConfig.(map[string]interface{})
-			service.config = appMapConfig
-			for key, strategy := range service.authStrategies {
-				strategy.SetConfiguration(appMapConfig)
-				strategy.SetApp(app)
-				strategy.SetName(key)
-			}
-			service.encryption = jwt.NewHS256([]byte(service.config["secret"].(string)))
-		} else {
-			return errors.New("No app configuration of auth is set")
-		}
+		strategyList := strategies.(map[string]AuthStrategy)
+		service := NewAuthService(app, strategyList)
 		app.AddService("authentication", service)
 		return nil
 	}

@@ -158,6 +158,13 @@ func NewParams() *Params {
 	}
 }
 
+func NewAuthenticatedParams(user map[string]interface{}) *Params {
+	p := NewParams()
+	p.Authenticated = true
+	p.User = user
+	return p
+}
+
 // NewParamsQuery returns a new HookParms struct only containng specified query
 func NewParamsQuery(query map[string]interface{}) *Params {
 
