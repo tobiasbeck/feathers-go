@@ -72,7 +72,7 @@ type Service struct {
 // Service routes
 
 func (f *Service) Find(ctx context.Context, params feathers.Params) (interface{}, error) {
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 		filters, findOpts, err := f.prepareFilter("", params.Query)
 		if err != nil {
 			return nil, err
@@ -103,7 +103,7 @@ func (f *Service) Find(ctx context.Context, params feathers.Params) (interface{}
 	return nil, notReady()
 }
 func (f *Service) Get(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 
 		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
@@ -152,7 +152,7 @@ func (f *Service) Create(ctx context.Context, data map[string]interface{}, param
 			idDoc.GenerateID()
 		}
 	}
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 		result, err := collection.InsertOne(ctx, model)
 		if err != nil {
 			return nil, err
@@ -180,7 +180,7 @@ func (f *Service) Update(ctx context.Context, id string, data map[string]interfa
 		timestampable.SetUpdatedAt()
 	}
 
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
@@ -202,7 +202,7 @@ func (f *Service) Update(ctx context.Context, id string, data map[string]interfa
 
 func (f *Service) Patch(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
 
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
@@ -235,7 +235,7 @@ func (f *Service) Patch(ctx context.Context, id string, data map[string]interfac
 }
 
 func (f *Service) Remove(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
-	if collection, ok := f.collection(); ok {
+	if collection, ok := f.Collection(); ok {
 		query, _, err := f.prepareFilter(id, params.Query)
 		if err != nil {
 			return nil, err
@@ -267,7 +267,7 @@ func notReady() error {
 	return feathers_error.NewGeneralError("Service not ready", nil)
 }
 
-func (f *Service) collection() (*mongo.Collection, bool) {
+func (f *Service) Collection() (*mongo.Collection, bool) {
 	if db, ok := f.mongoDb(); ok {
 		return db.Collection(f.CollectionName), true
 	}

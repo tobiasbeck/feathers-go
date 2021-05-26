@@ -12,7 +12,7 @@ type IdDocument interface {
 }
 
 type Document struct {
-	ID primitive.ObjectID `bson:"_id" mapstructure:"_id"`
+	ID primitive.ObjectID `bson:"_id" mapstructure:"_id,omitempty"`
 }
 
 func NewDocument() *Document {
