@@ -32,12 +32,16 @@ func fileEnding(name string) string {
 	return parts[len(parts)-1]
 }
 
+func fileName(name string) string {
+	parts := strings.Split(name, ".")
+	return strings.Join(parts[:len(parts)-1], ".")
+}
+
 // LoadConfigDirectory loads a whole directory of .yaml config files.
 func LoadConfigDirectory(dirPath string) (map[string]map[string]interface{}, error) {
 	configs := map[string]map[string]interface{}{}
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		fmt.Println("FIRST ERROR")
 		return nil, err
 	}
 	for _, file := range files {
@@ -50,13 +54,11 @@ func LoadConfigDirectory(dirPath string) (map[string]map[string]interface{}, err
 		}
 		filePath := fmt.Sprintf("%s/%s", dirPath, file.Name())
 		data, err := LoadConfigFile(filePath)
-		key := strings.Split(file.Name(), ".")[0]
+		key := fileName(file.Name())
 		if err != nil {
-			fmt.Println("FILE RROR")
 			return nil, errors.Wrap(err, "file: "+file.Name())
 		}
 		configs[key] = data
-		fmt.Printf("Co")
 	}
 	return configs, nil
 }
