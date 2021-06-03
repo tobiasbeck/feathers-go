@@ -162,6 +162,7 @@ func (f *Service) Create(ctx context.Context, data map[string]interface{}, param
 			return nil, err
 		}
 		modelMap["_id"] = result.InsertedID
+		params.Set("mongo_result", result)
 		// findResult := collection.FindOne(params.CallContext, bson.D{{"_id", result.InsertedID}})
 		// var document map[string]interface{}
 		// findResult.Decode(&document)
@@ -192,6 +193,7 @@ func (f *Service) Update(ctx context.Context, id string, data map[string]interfa
 			return nil, err
 		}
 		modelMap["_id"] = result.UpsertedID
+		params.Set("mongo_result", result)
 		// findResult := collection.FindOne(params.CallContext, bson.D{{"_id", result.InsertedID}})
 		// var document map[string]interface{}
 		// findResult.Decode(&document)
@@ -223,6 +225,7 @@ func (f *Service) Patch(ctx context.Context, id string, data map[string]interfac
 		if result.MatchedCount == 0 && result.UpsertedCount == 0 {
 			return nil, nil
 		}
+		params.Set("mongo_result", result)
 		findResult := collection.FindOne(ctx, query)
 		var document map[string]interface{}
 		err = findResult.Decode(&document)
@@ -256,6 +259,7 @@ func (f *Service) Remove(ctx context.Context, id string, params feathers.Params)
 		if deleteResult.DeletedCount != 1 {
 			return nil, feathers_error.NewNotFound("Could not delete entity")
 		}
+		params.Set("mongo_result", deleteResult)
 
 		return document, nil
 
