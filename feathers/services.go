@@ -88,6 +88,10 @@ func (t HooksTree) Branch(branchType HookType) HooksTreeBranch {
 	panic("unknown hook tree")
 }
 
+type Defaulter interface {
+	SetDefaults()
+}
+
 // BaseService (every service should extend from this)
 type BaseService struct {
 	Hooks HooksTree
@@ -128,6 +132,11 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 		return nil, err
 	}
 	defaults.SetDefaults(model)
+
+	if defaulter, ok := model.(Defaulter); ok {
+		defaulter.SetDefaults()
+	}
+
 	return model, nil
 }
 
