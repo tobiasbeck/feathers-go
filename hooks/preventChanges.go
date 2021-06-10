@@ -8,11 +8,11 @@ import (
 )
 
 func PreventChanges(retError bool, fields ...string) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		if ctx.Type == feathers.Before {
 			err := CheckContext(ctx, "discard", []feathers.HookType{"before", "after"}, []feathers.RestMethod{"create", "update", "patch"})
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -22,7 +22,7 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 			for _, field := range fields {
 				if _, ok := item[field]; ok {
 					if retError {
-						return nil, feathers_error.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
+						return feathers_error.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
 					}
 					delete(item, field)
 
@@ -31,6 +31,6 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 		}
 
 		ReplaceItemsNormalized(ctx, items, normalized)
-		return ctx, nil
+		return nil
 	}
 }

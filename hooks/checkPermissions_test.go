@@ -35,7 +35,7 @@ func TestCheckPermissions(t *testing.T) {
 
 		context.Params.Set("permissions", data.userPermissions)
 
-		_, err := hooks.CheckPermissions(data.hookPermissions...)(&context)
+		err := hooks.CheckPermissions(data.hookPermissions...)(&context)
 		if (err == nil) == data.expectError {
 			t.Errorf("Failed #%d: wanted: (wantErr: %t), got: (err %v)", key+1, data.expectError, err)
 		}

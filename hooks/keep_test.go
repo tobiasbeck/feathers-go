@@ -18,7 +18,7 @@ func TestKeep(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.Keep("test", "test2")(ctx)
+	err := hooks.Keep("test", "test2")(ctx)
 	if err != nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return

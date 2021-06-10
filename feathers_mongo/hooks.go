@@ -6,7 +6,7 @@ import (
 )
 
 func MongoKeys(fields ...string) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		data := ctx.Data
 		for _, field := range fields {
 			value := data[field]
@@ -18,6 +18,6 @@ func MongoKeys(fields ...string) feathers.Hook {
 			}
 		}
 
-		return ctx, nil
+		return nil
 	}
 }

@@ -268,7 +268,7 @@ func (c *Context) Value(key interface{}) interface{} {
 }
 
 // Hook is a function which can be used to modify request params
-type Hook = func(ctx *Context) (*Context, error)
+type Hook = func(ctx *Context) error
 
 // BoolHook works just like a hook but returns a boolean and cannot modify the context
 type BoolHook = func(ctx *Context) (bool, error)

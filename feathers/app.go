@@ -26,7 +26,7 @@ type task struct {
 	mode      taskMode
 	method    RestMethod
 	chainType HookType
-	hookChain []func(ctx *Context) (*Context, error) // If this is changed to []Hook it triggers #25838 in Go.
+	hookChain []func(ctx *Context) error // If this is changed to []Hook it triggers #25838 in Go.
 	service   Service
 	position  int
 	context   *Context
@@ -104,7 +104,7 @@ type App struct {
 
 // ---------------
 
-func (a *App) mergeAppHooks(chain []func(ctx *Context) (*Context, error), hookType HookType, branch RestMethod) []func(ctx *Context) (*Context, error) {
+func (a *App) mergeAppHooks(chain []func(ctx *Context) error, hookType HookType, branch RestMethod) []func(ctx *Context) error {
 	if appHooks, ok := getField(&a.hooks, strings.Title(hookType.String())); ok {
 		appHookBranch := appHooks.(HooksTreeBranch)
 		appHookChain := appHookBranch.Branch(branch)
@@ -301,11 +301,10 @@ func (a *App) handleHookChain(ctx *Context, chainType HookType, service Service)
 	ctx.Type = chainType
 	loopCtx := ctx
 	for _, hook := range mergedChain {
-		result, err := hook(loopCtx)
+		err := hook(loopCtx)
 		if err != nil {
 			return nil, err
 		}
-		loopCtx = result
 	}
 
 	return loopCtx, nil

@@ -3,10 +3,10 @@ package hooks
 import "github.com/tobiasbeck/feathers-go/feathers"
 
 func DiscardQuery(fields ...string) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		err := CheckContext(ctx, "discardQuery", []feathers.HookType{"before"}, []feathers.RestMethod{})
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		query := ctx.Params.Query
@@ -16,6 +16,6 @@ func DiscardQuery(fields ...string) feathers.Hook {
 		}
 
 		ctx.Params.Query = query
-		return ctx, nil
+		return nil
 	}
 }

@@ -17,7 +17,7 @@ func TestRequired(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.Required("test")(ctx)
+	err := hooks.Required("test")(ctx)
 	if err != nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
@@ -34,7 +34,7 @@ func TestRequired2(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.Required("test", "test3")(ctx)
+	err := hooks.Required("test", "test3")(ctx)
 	if err == nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
@@ -51,7 +51,7 @@ func TestRequired3(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.Required("test3")(ctx)
+	err := hooks.Required("test3")(ctx)
 	if err == nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return

@@ -51,7 +51,12 @@ func GetItemsNormalized(ctx *feathers.Context) ([]map[string]interface{}, bool) 
 func ReplaceItemsNormalized(ctx *feathers.Context, data interface{}, normalized bool) {
 	normData := UnormalizeSlice(data, normalized)
 	if ctx.Type == feathers.Before {
-		ctx.Data = normData.(map[string]interface{})
+		if normData != nil {
+			ctx.Data = normData.(map[string]interface{})
+		} else {
+			ctx.Data = nil
+		}
+
 	} else {
 		ctx.Result = normData
 	}

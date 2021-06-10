@@ -10,19 +10,19 @@ different to the original feathers-hook returning nil will remove the item from 
 Returning error in handler will immediatly cancel execution and return error
 */
 func AlterItems(handler AlterItemHandler) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		items, normalized := GetItemsNormalized(ctx)
 		normalizedItems := make([]map[string]interface{}, 0, len(items))
 		for _, item := range items {
 			data, err := handler(item, ctx)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if data != nil {
 				normalizedItems = append(normalizedItems, data.(map[string]interface{}))
 			}
 		}
 		ReplaceItemsNormalized(ctx, normalizedItems, normalized)
-		return ctx, nil
+		return nil
 	}
 }

@@ -18,7 +18,7 @@ func TestDiscard(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.Discard("test3", "test2")(ctx)
+	err := hooks.Discard("test3", "test2")(ctx)
 	if err != nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return

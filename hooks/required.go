@@ -10,11 +10,11 @@ import (
 
 // Required checks if all passed fields are set
 func Required(fields ...string) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		if ctx.Type == feathers.Before {
 			err := CheckContext(ctx, "discard", []feathers.HookType{"before", "after"}, []feathers.RestMethod{"create", "update", "patch"})
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -26,16 +26,16 @@ func Required(fields ...string) feathers.Hook {
 				if val, ok := item[field]; ok {
 					r := reflect.ValueOf(val)
 					if r.IsZero() {
-						return nil, err
+						return err
 					}
 
 				} else {
-					return nil, err
+					return err
 				}
 			}
 		}
 
 		ReplaceItemsNormalized(ctx, items, normalized)
-		return ctx, nil
+		return nil
 	}
 }

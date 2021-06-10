@@ -3,11 +3,11 @@ package hooks
 import "github.com/tobiasbeck/feathers-go/feathers"
 
 func KeepQuery(keep ...string) feathers.Hook {
-	return func(ctx *feathers.Context) (*feathers.Context, error) {
+	return func(ctx *feathers.Context) error {
 		if ctx.Type == feathers.Before {
 			err := CheckContext(ctx, "keepquery", []feathers.HookType{"before", "after"}, []feathers.RestMethod{"create", "update", "patch", "find"})
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -18,6 +18,6 @@ func KeepQuery(keep ...string) feathers.Hook {
 				delete(item, key)
 			}
 		}
-		return ctx, nil
+		return nil
 	}
 }

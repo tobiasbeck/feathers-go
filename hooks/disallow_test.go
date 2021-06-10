@@ -30,7 +30,7 @@ func TestDisallow(t *testing.T) {
 			},
 		}
 
-		_, err := hooks.Disallow(data.hookProvider...)(&context)
+		err := hooks.Disallow(data.hookProvider...)(&context)
 		if (err == nil) == data.expectError {
 			t.Errorf("Failed #%d: wanted: (wantErr: %t), got: (err %v)", key+1, data.expectError, err)
 		}

@@ -20,7 +20,7 @@ func TestAlterItemsBefore(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
+	err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		if itemMap, ok := item.(map[string]interface{}); ok {
 			delete(itemMap, "test")
 			itemMap["test2"] = "hello"
@@ -52,7 +52,7 @@ func TestAlterItemsError(t *testing.T) {
 		Data:   map[string]interface{}{},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
+	err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		return nil, errors.New("could not transform item to map[string]interface{}")
 	})(ctx)
 	if err == nil {
@@ -72,7 +72,7 @@ func TestAlterItemsRemove(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
+	err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		return nil, nil
 	})(ctx)
 	if err != nil {
@@ -102,7 +102,7 @@ func TestAlterItemsRemoveArray(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
+	err := hooks.AlterItems(func(item interface{}, ctx *feathers.Context) (interface{}, error) {
 		if itemMap, ok := item.(map[string]interface{}); ok {
 			if itemMap["test"].(string) == "remove" {
 				return nil, nil

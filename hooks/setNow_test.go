@@ -18,7 +18,7 @@ func TestSetNow(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.SetNow("test", "test3")(ctx)
+	err := hooks.SetNow("test", "test3")(ctx)
 	if err != nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return

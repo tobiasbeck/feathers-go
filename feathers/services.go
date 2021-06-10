@@ -10,8 +10,8 @@ import (
 
 func mergeHooks(chainA []Hook, chainB []Hook) []Hook {
 
-	copyA := make([]func(ctx *Context) (*Context, error), len(chainA))
-	copyB := make([]func(ctx *Context) (*Context, error), len(chainB))
+	copyA := make([]func(ctx *Context) error, len(chainA))
+	copyB := make([]func(ctx *Context) error, len(chainB))
 	copy(copyA, chainA)
 	copy(copyB, chainB)
 	return append(copyA, copyB...)

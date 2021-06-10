@@ -17,7 +17,7 @@ func TestLowercaseBefore(t *testing.T) {
 		},
 	}
 
-	ctx, err := hooks.LowerCase("test")(ctx)
+	err := hooks.LowerCase("test")(ctx)
 	if err != nil {
 		t.Errorf("Hook returned unexpected error: %s", err)
 		return
