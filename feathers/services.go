@@ -131,10 +131,12 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	defaults.SetDefaults(model)
 
 	if defaulter, ok := model.(Defaulter); ok {
 		defaulter.SetDefaults()
+	} else {
+		// TODO: this is a deprecated fallback and will be removed in the future
+		defaults.SetDefaults(model)
 	}
 
 	return model, nil
