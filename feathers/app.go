@@ -82,6 +82,10 @@ type Provider interface {
 	Publish(room string, event string, data interface{}, path string, provider string)
 }
 
+type Setupable interface {
+	Setup(app *App)
+}
+
 // AppModules is a module which can configure the application
 /*
 Are supposed to be passed to Configure method of App
@@ -340,6 +344,15 @@ func (a *App) Listen() {
 	if port, ok := a.config["port"]; ok {
 		log.Infoln("Listening at ", port)
 		// mux := mux.NewRouter()
+
+		for _, service := range a.services {
+			setupable, ok := service.(Setupable)
+			if !ok {
+				continue
+			}
+			setupable.Setup(a)
+		}
+
 		serveMux := http.NewServeMux()
 		for _, provider := range a.providers {
 			provider.Listen(port.(int), serveMux)
