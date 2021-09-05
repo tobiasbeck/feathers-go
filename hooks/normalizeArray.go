@@ -6,11 +6,18 @@ import (
 
 func NormalizeSlice(data interface{}) (interface{}, bool) {
 	r := reflect.ValueOf(data)
+	// fmt.Printf("R: %#v\n", r)
+	// fmt.Printf("DATA: %#v\n", data)
+	// if !r.IsValid() {
+	// 	return map[string]interface{}{}, true
+	// }
 	if r.Kind() == reflect.Slice {
 		return data, false
-	} else {
+	} else if !r.IsNil() {
 		return []map[string]interface{}{data.(map[string]interface{})}, true
 	}
+
+	return map[string]interface{}{}, true
 }
 
 func UnormalizeSlice(data interface{}, normalized bool) interface{} {
