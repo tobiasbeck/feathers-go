@@ -8,9 +8,9 @@ func NormalizeSlice(data interface{}) (interface{}, bool) {
 	r := reflect.ValueOf(data)
 	// fmt.Printf("R: %#v\n", r)
 	// fmt.Printf("DATA: %#v\n", data)
-	// if !r.IsValid() {
-	// 	return map[string]interface{}{}, true
-	// }
+	if !r.IsValid() {
+	  return map[string]interface{}{}, true
+	}
 	if r.Kind() == reflect.Slice {
 		return data, false
 	} else if !r.IsNil() {
