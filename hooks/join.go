@@ -1,6 +1,8 @@
 package hooks
 
-import "github.com/tobiasbeck/feathers-go/feathers"
+import (
+	"github.com/tobiasbeck/feathers-go/feathers"
+)
 
 type JoinOperator = func(entity map[string]interface{}, ctx *feathers.Context) error
 
