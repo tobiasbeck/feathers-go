@@ -50,6 +50,8 @@ const (
 	Patch RestMethod = "patch"
 	// Remove method removes a document
 	Remove RestMethod = "remove"
+	// All only represents a hook branch type
+	All RestMethod = "all"
 )
 
 func eventFromCallMethod(method RestMethod) string {

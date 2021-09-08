@@ -13,6 +13,15 @@ func getField(v interface{}, field string) (interface{}, bool) {
 	return f.Interface(), true
 }
 
+func setField(v interface{}, field string, value interface{}) {
+	r := reflect.ValueOf(v)
+	rValue := reflect.ValueOf(value)
+	if !r.Elem().FieldByName(field).IsValid() {
+		return
+	}
+	reflect.Indirect(r).FieldByName(field).Set(rValue)
+}
+
 type EventListener = func(data interface{})
 
 type EventEmitter struct {
