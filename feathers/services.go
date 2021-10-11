@@ -2,6 +2,7 @@ package feathers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/go-playground/validator"
@@ -62,11 +63,22 @@ type HooksTreeBranch struct {
 
 func (b HooksTreeBranch) Branch(method RestMethod) []Hook {
 	key := strings.Title(method.String())
-	if chain, ok := getField(&b, key); ok == true {
+	if chain, ok := getField(&b, key); ok {
 		hc := chain.([]Hook)
 		return mergeHooks(b.All, hc)
 	}
 	return make([]Hook, 0)
+}
+
+func (b *HooksTreeBranch) Append(method RestMethod, hooks []Hook) {
+	key := strings.Title(method.String())
+	if chain, ok := getField(&b, key); ok {
+		hc := chain.([]Hook)
+		merged := mergeHooks(hc, hooks)
+		setField(b, key, merged)
+	} else {
+		panic(fmt.Sprintf("Could not find branch %s", key))
+	}
 }
 
 //HooksTree is the complete hooks definition of a service or the application
@@ -81,11 +93,21 @@ type HooksTree struct {
 
 func (t HooksTree) Branch(branchType HookType) HooksTreeBranch {
 	key := strings.Title(branchType.String())
-	if branch, ok := getField(&t, key); ok == true {
+	if branch, ok := getField(&t, key); ok {
 		hc := branch.(HooksTreeBranch)
 		return hc
 	}
 	panic("unknown hook tree")
+}
+
+func (t *HooksTree) Append(branchType HookType, method RestMethod, hooks []Hook) {
+	key := strings.Title(branchType.String())
+	if branch, ok := getField(&t, key); ok {
+		hc := branch.(HooksTreeBranch)
+		hc.Append(method, hooks)
+	} else {
+		panic(fmt.Sprintf("Could not find branch %s", key))
+	}
 }
 
 type Defaulter interface {
