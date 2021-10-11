@@ -221,6 +221,7 @@ type PublishHandler = func(data interface{}, ctx *Context) []string
 type PublishableService interface {
 	RegisterPublishHandler(topic string, handler PublishHandler)
 	Publish(topic string, data interface{}, ctx *Context) ([]string, error)
+	BeforePublish(topic string, data interface{}, ctx *Context) (interface{}, error)
 }
 
 //BasePublishableService is a basic implementation of PublishableService
@@ -251,4 +252,9 @@ func (s *BasePublishableService) Publish(topic string, data interface{}, ctx *Co
 		return result, nil
 	}
 	return nil, errors.New("Handler is not registered")
+}
+
+// BeforePublish is called before data is published to a topic. data can be manipulated at this point
+func (s *BasePublishableService) BeforePublish(topic string, data interface{}, ctx *Context) (interface{}, error) {
+	return data, nil
 }

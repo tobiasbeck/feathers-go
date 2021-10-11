@@ -276,6 +276,15 @@ func (s *appService) Publish(topic string, data interface{}, ctx *Context) ([]st
 	return []string{}, nil
 }
 
+// BeforePublish is called before data is published to a topic. data can be manipulated at this point
+func (s *appService) BeforePublish(topic string, data interface{}, ctx *Context) (interface{}, error) {
+	if ps, ok := s.service.(PublishableService); ok {
+		result, err := ps.BeforePublish(topic, data, ctx)
+		return result, err
+	}
+	return data, nil
+}
+
 func (as *appService) callMethod(ctx context.Context, method RestMethod, data map[string]interface{}, id string, params Params) (interface{}, error) {
 	caller := &appServiceCaller{
 		success: make(chan interface{}, 0),

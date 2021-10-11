@@ -284,13 +284,19 @@ func (a *App) handlePipeline(ctx *Context, service Service, c Caller) {
 func (a *App) TriggerUpdate(ctx *Context) {
 	// fmt.Printf("TRIGGER UPDATE: %s\n\n", ctx.Path)
 	// fmt.Printf("Service: %T\n", ctx.ServiceClass)
+
 	//Afterwards trigger updates
 	if service, ok := ctx.Service.(PublishableService); ok {
 		if event := eventFromCallMethod(ctx.Method); event != "" {
 			if rooms, err := service.Publish(event, ctx.Result, ctx); err == nil {
 				serviceEvent := fmt.Sprintf("%s %s", ctx.Path, event)
 				for _, room := range rooms {
-					a.PublishToProviders(room, serviceEvent, ctx.Result, ctx.Path, ctx.Params.Provider)
+					data, err := service.BeforePublish(room, ctx.Result, ctx)
+					if err != nil || data == nil {
+						fmt.Println("SKIP SENDING", err, data)
+						continue
+					}
+					a.PublishToProviders(room, serviceEvent, data, ctx.Path, ctx.Params.Provider)
 				}
 			}
 		}
