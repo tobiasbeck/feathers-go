@@ -12,7 +12,7 @@ type IdDocument interface {
 }
 
 type Document struct {
-	ID primitive.ObjectID `bson:"_id" mapstructure:"_id,omitempty"`
+	ID primitive.ObjectID `bson:"_id" mapstructure:"_id,omitempty" json:"_id" ts_type:"string"`
 }
 
 func NewDocument() *Document {
@@ -35,8 +35,8 @@ type Timestampable interface {
 }
 
 type TimestampDoc struct {
-	CreatedAt primitive.DateTime `bson:"createdAt" mapstructure:"createdAt"`
-	UpdatedAt primitive.DateTime `bson:"updatedAt" mapstructure:"updatedAt"`
+	CreatedAt primitive.DateTime `bson:"createdAt" mapstructure:"createdAt" json:"createdAt"`
+	UpdatedAt primitive.DateTime `bson:"updatedAt" mapstructure:"updatedAt" json:"updatedAt"`
 }
 
 func (td *TimestampDoc) SetCreatedAt() {
