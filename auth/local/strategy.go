@@ -1,11 +1,11 @@
-package feathers_auth_local
+package local
 
 import (
 	"context"
 
+	"github.com/tobiasbeck/feathers-go/auth"
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
-	"github.com/tobiasbeck/feathers-go/feathers_auth"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,7 +15,7 @@ type strategyConfig struct {
 }
 
 type Strategy struct {
-	*feathers_auth.BaseAuthStrategy
+	*auth.BaseAuthStrategy
 }
 
 func (s *Strategy) findEntity(ctx context.Context, username string, params feathers.Params) (map[string]interface{}, error) {
@@ -27,7 +27,7 @@ func (s *Strategy) findEntity(ctx context.Context, username string, params feath
 		findParams := feathers.NewParamsQuery(query)
 		iResults, err := service.Find(ctx, *findParams)
 		if err != nil {
-			return nil, feathers_error.NewNotAuthenticated(err.Error(), nil)
+			return nil, httperrors.NewNotAuthenticated(err.Error(), nil)
 		}
 		// fmt.Printf("IRESULTS: %#v\n", iResults)
 		switch result := iResults.(type) {
@@ -36,15 +36,15 @@ func (s *Strategy) findEntity(ctx context.Context, username string, params feath
 				// fmt.Printf("entity %#v\n", result[0])
 				return result[0], nil
 			}
-			return nil, feathers_error.NewNotAuthenticated("", nil)
+			return nil, httperrors.NewNotAuthenticated("", nil)
 		case map[string]interface{}:
 			// fmt.Printf("entity %#v\n", result)
 			return result, nil
 
 		}
-		return nil, feathers_error.NewNotAuthenticated("", nil)
+		return nil, httperrors.NewNotAuthenticated("", nil)
 	}
-	return nil, feathers_error.NewNotAuthenticated("Not Authenticated", nil)
+	return nil, httperrors.NewNotAuthenticated("Not Authenticated", nil)
 }
 
 func (s *Strategy) comparePassword(entity map[string]interface{}, password string) bool {
@@ -61,7 +61,7 @@ func (s *Strategy) comparePassword(entity map[string]interface{}, password strin
 	return false
 }
 
-func (s *Strategy) Authenticate(ctx context.Context, data feathers_auth.Model, params feathers.Params) (map[string]interface{}, error) {
+func (s *Strategy) Authenticate(ctx context.Context, data auth.Model, params feathers.Params) (map[string]interface{}, error) {
 	config := strategyConfig{}
 	s.StrategyConfig(&config)
 	defaultConfig := s.DefaultConfig()
@@ -73,7 +73,7 @@ func (s *Strategy) Authenticate(ctx context.Context, data feathers_auth.Model, p
 	// This takes around 250ms to complete (pretty slow)
 	passwordCorrect := s.comparePassword(entity, data.Params[config.PasswordField].(string))
 	if !passwordCorrect {
-		return nil, feathers_error.NewNotAuthenticated("Username or Password is incorrect", nil)
+		return nil, httperrors.NewNotAuthenticated("Username or Password is incorrect", nil)
 	}
 	result := map[string]interface{}{
 		"authentication": struct{ Strategy string }{Strategy: "local"},
@@ -84,6 +84,6 @@ func (s *Strategy) Authenticate(ctx context.Context, data feathers_auth.Model, p
 
 func New() *Strategy {
 	return &Strategy{
-		BaseAuthStrategy: &feathers_auth.BaseAuthStrategy{},
+		BaseAuthStrategy: &auth.BaseAuthStrategy{},
 	}
 }

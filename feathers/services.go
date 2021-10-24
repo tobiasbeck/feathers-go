@@ -133,6 +133,10 @@ func (b *BaseService) HookTree() HooksTree {
 	return b.Hooks
 }
 
+type Mappable interface {
+	ToMap() map[string]interface{}
+}
+
 // ModelFactory returns a new instance of the model (used for `ModelService` struct)
 type ModelFactory = func() interface{}
 
@@ -166,6 +170,9 @@ func (m *ModelService) MapToModel(data map[string]interface{}) (interface{}, err
 
 // StructToMap converts a model struct into an interface
 func (m *ModelService) StructToMap(data interface{}) (map[string]interface{}, error) {
+	if mappableStruct, ok := data.(Mappable); ok {
+		return mappableStruct.ToMap(), nil
+	}
 	result := make(map[string]interface{})
 	decoder, err := newDecoder(&result)
 	if err != nil {

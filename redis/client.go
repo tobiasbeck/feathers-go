@@ -1,4 +1,4 @@
-package feathers_redis_sync
+package redis
 
 import (
 	"errors"

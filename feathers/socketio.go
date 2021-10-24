@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 	gosocketio "github.com/tobiasbeck/feathers-go/gosf-socketio"
 	"github.com/tobiasbeck/feathers-go/gosf-socketio/transport"
 )
@@ -152,14 +152,14 @@ func (fs *SocketIOProvider) Listen(port int, serveMux *http.ServeMux) {
 func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, response chan<- interface{}, responseErr chan<- error, data []interface{}) {
 	if len(data) <= 0 {
 		go func() {
-			responseErr <- feathers_error.NewBadRequest("Service not defined")
+			responseErr <- httperrors.NewBadRequest("Service not defined")
 		}()
 		return
 	}
 	serviceType := reflect.TypeOf(data[0])
 	if serviceType.String() != "string" {
 		go func() {
-			responseErr <- feathers_error.NewBadRequest("Service name not string")
+			responseErr <- httperrors.NewBadRequest("Service name not string")
 		}()
 		return
 	}
@@ -168,7 +168,7 @@ func (fs *SocketIOProvider) handleEvent(event string, c *gosocketio.Channel, res
 
 	if !ok {
 		go func() {
-			responseErr <- feathers_error.NewBadRequest("Connection is not registered")
+			responseErr <- httperrors.NewBadRequest("Connection is not registered")
 		}()
 		return
 	}

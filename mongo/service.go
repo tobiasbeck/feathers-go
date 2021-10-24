@@ -1,4 +1,4 @@
-package feathers_mongo
+package mongo
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -124,7 +124,7 @@ func (f *Service) Get(ctx context.Context, id string, params feathers.Params) (i
 			return nil, err
 		}
 		if len(returnData) <= 0 {
-			return nil, feathers_error.NewNotFound(fmt.Sprintf("Entity with id %s not found", id), nil)
+			return nil, httperrors.NewNotFound(fmt.Sprintf("Entity with id %s not found", id), nil)
 		}
 		// fmt.Printf("\n\nRETURNDATA: %#v\n\n", returnData)
 		return returnData[0], err
@@ -257,7 +257,7 @@ func (f *Service) Remove(ctx context.Context, id string, params feathers.Params)
 		}
 
 		if deleteResult.DeletedCount != 1 {
-			return nil, feathers_error.NewNotFound("Could not delete entity")
+			return nil, httperrors.NewNotFound("Could not delete entity")
 		}
 		params.Set("mongo_result", deleteResult)
 
@@ -268,7 +268,7 @@ func (f *Service) Remove(ctx context.Context, id string, params feathers.Params)
 }
 
 func notReady() error {
-	return feathers_error.NewGeneralError("Service not ready", nil)
+	return httperrors.NewGeneralError("Service not ready", nil)
 }
 
 func (f *Service) Collection() (*mongo.Collection, bool) {
@@ -332,6 +332,22 @@ func replaceMongoKeys(filter map[string]interface{}, keys []string) map[string]i
 		}
 	}
 	return filter
+}
+
+func filterObjectIdFields(data map[string]interface{}, keys []string) map[string]interface{} {
+	for _, field := range keys {
+		value, isSet := data[field]
+		if !isSet {
+			continue
+		}
+		switch v := value.(type) {
+		case primitive.ObjectID:
+			if v == primitive.NilObjectID {
+				delete(data, field)
+			}
+		}
+	}
+	return data
 }
 
 // NewService creates a new mongo service struct

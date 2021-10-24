@@ -16,15 +16,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Unmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.
+// Unmarshal YAML to map[string]interface{} instead of map[interface{}]interface{} and []interface{} to []map[string]interface{}
 func Unmarshal(in []byte, out interface{}) error {
 	var res interface{}
 
 	if err := yaml.Unmarshal(in, &res); err != nil {
 		return err
 	}
-	*out.(*interface{}) = cleanupMapValue(res)
-
+	switch v := res.(type) {
+	case map[interface{}]interface{}:
+		*out.(*interface{}) = cleanupMapValue(v)
+	case []interface{}:
+		*out.(*interface{}) = cleanupInterfaceArray(v)
+	default:
+		return fmt.Errorf("could not Unmarshall config of type %T", res)
+	}
 	return nil
 }
 
@@ -36,7 +42,14 @@ func Marshal(in interface{}) ([]byte, error) {
 func cleanupInterfaceArray(in []interface{}) []interface{} {
 	res := make([]interface{}, len(in))
 	for i, v := range in {
-		res[i] = cleanupMapValue(v)
+		switch vt := v.(type) {
+		case map[interface{}]interface{}:
+			res[i] = cleanupMapValue(vt)
+		case []interface{}:
+			res[i] = cleanupInterfaceArray(vt)
+		default:
+			res[i] = v
+		}
 	}
 	return res
 }

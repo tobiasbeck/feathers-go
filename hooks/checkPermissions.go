@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 func CheckPermissions(requiredPermissions ...string) feathers.Hook {
@@ -15,7 +15,7 @@ func CheckPermissions(requiredPermissions ...string) feathers.Hook {
 		hookPermissions, ok := ctx.Params.Lookup("permissions")
 		if !ok {
 			if ok, _ := IsProvider("external")(ctx); ok {
-				return feathers_error.NewForbidden("You do not have the correct permissions (invalid permission entity).", nil)
+				return httperrors.NewForbidden("You do not have the correct permissions (invalid permission entity).", nil)
 			}
 		}
 		var currentPermissions []string
@@ -25,7 +25,7 @@ func CheckPermissions(requiredPermissions ...string) feathers.Hook {
 		case []string:
 			currentPermissions = p
 		default:
-			return feathers_error.NewGeneralError("You do ont have the correct permissions (permission datatype mismatch)", nil)
+			return httperrors.NewGeneralError("You do ont have the correct permissions (permission datatype mismatch)", nil)
 		}
 
 		requiredPermissionsWildcards := append([]string{}, "*", "*:"+ctx.Method.String())
@@ -39,6 +39,6 @@ func CheckPermissions(requiredPermissions ...string) feathers.Hook {
 				}
 			}
 		}
-		return feathers_error.NewForbidden("You do not have the correct permissions.", nil)
+		return httperrors.NewForbidden("You do not have the correct permissions.", nil)
 	}
 }

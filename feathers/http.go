@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 type requestRegistration struct {
@@ -129,7 +129,7 @@ func (h *HttpProvider) respond(response http.ResponseWriter, data interface{}) {
 
 func responseCode(data interface{}) int {
 	code := 200
-	if err, ok := data.(feathers_error.FeathersError); ok {
+	if err, ok := data.(httperrors.FeathersError); ok {
 		code = err.Code
 	}
 	return code

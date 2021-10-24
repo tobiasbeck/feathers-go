@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 // Required checks if all passed fields are set
@@ -21,7 +21,7 @@ func RequiredQuery(fields ...string) feathers.Hook {
 		item := ctx.Params.Query
 
 		for _, field := range fields {
-			err := feathers_error.NewBadRequest(fmt.Sprintf("Field %s does not exist. (requiredQuery)", field), nil)
+			err := httperrors.NewBadRequest(fmt.Sprintf("Field %s does not exist. (requiredQuery)", field), nil)
 			if val, ok := item[field]; ok {
 				r := reflect.ValueOf(val)
 				if r.IsZero() {

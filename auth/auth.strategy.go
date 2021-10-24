@@ -1,4 +1,4 @@
-package feathers_auth
+package auth
 
 import (
 	"context"

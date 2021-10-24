@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 type taskMode string
@@ -172,7 +172,7 @@ func (a *App) handleServerServiceCall(ctx context.Context, service string, metho
 		go a.handlePipeline(&initContext, serviceInstance, c)
 		return
 	}
-	c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
+	c.CallbackError(httperrors.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
 	log.Warnln("Unknown Service " + service)
 	return
 }
@@ -228,7 +228,7 @@ func (a *App) HandleRequest(provider string, method RestMethod, c Caller, servic
 	}
 	go func() {
 		log.Warnln("Unknown Service" + service)
-		c.CallbackError(feathers_error.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
+		c.CallbackError(httperrors.NewNotFound(fmt.Sprintf("Unknown Service %s", service)))
 	}()
 	return
 }
@@ -322,8 +322,8 @@ func (a *App) handleHookChain(ctx *Context, chainType HookType, service Service)
 
 func (a *App) handlePipelineError(err error, ctx *Context, service Service, c Caller) {
 	featherError := err
-	if _, ok := err.(feathers_error.FeathersError); !ok {
-		featherError = feathers_error.Convert(err)
+	if _, ok := err.(httperrors.FeathersError); !ok {
+		featherError = httperrors.Convert(err)
 	}
 	ctx.Error = featherError
 	ctx, chainErr := a.handleHookChain(ctx, Error, service)

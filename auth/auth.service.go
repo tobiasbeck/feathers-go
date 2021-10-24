@@ -1,4 +1,4 @@
-package feathers_auth
+package auth
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	lookup "github.com/mcuadros/go-lookup"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 type hexable interface {
@@ -47,12 +47,12 @@ func (as *AuthService) Create(ctx context.Context, data map[string]interface{}, 
 	model := Model{}
 	err := as.MapAndValidateStruct(data, &model)
 	if err != nil {
-		return nil, feathers_error.Convert(err)
+		return nil, httperrors.Convert(err)
 	}
 	if strategy, ok := as.authStrategies[model.Strategy]; ok {
 		result, err := strategy.Authenticate(ctx, model, params)
 		if err != nil {
-			return nil, feathers_error.Convert(err)
+			return nil, httperrors.Convert(err)
 		}
 
 		if params.IsSocket && params.Connection != nil {
@@ -66,7 +66,7 @@ func (as *AuthService) Create(ctx context.Context, data map[string]interface{}, 
 		}
 		token, decoded, err := as.createAccessToken(result)
 		if err != nil {
-			return nil, feathers_error.Convert(err)
+			return nil, httperrors.Convert(err)
 		}
 
 		result["accessToken"] = token
@@ -77,28 +77,28 @@ func (as *AuthService) Create(ctx context.Context, data map[string]interface{}, 
 
 		return result, nil
 	}
-	return nil, feathers_error.NewGeneralError("Strategy "+model.Strategy+" not registered", nil)
+	return nil, httperrors.NewGeneralError("Strategy "+model.Strategy+" not registered", nil)
 }
 
 // Remove TODO Add implementation
 func (as *AuthService) Remove(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
+	return nil, httperrors.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Find(ctx context.Context, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
+	return nil, httperrors.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Get(ctx context.Context, id string, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
+	return nil, httperrors.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Patch(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
+	return nil, httperrors.NewMethodNotAllowed("Not supported", nil)
 }
 
 func (as *AuthService) Update(ctx context.Context, id string, data map[string]interface{}, params feathers.Params) (interface{}, error) {
-	return nil, feathers_error.NewMethodNotAllowed("Not supported", nil)
+	return nil, httperrors.NewMethodNotAllowed("Not supported", nil)
 }
 
 func NewAuthService(app *feathers.App, strategies map[string]AuthStrategy) *AuthService {

@@ -1,4 +1,4 @@
-package feathers_mongo
+package mongo
 
 import (
 	"github.com/tobiasbeck/feathers-go/feathers"

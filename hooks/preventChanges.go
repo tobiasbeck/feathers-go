@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 func PreventChanges(retError bool, fields ...string) feathers.Hook {
@@ -22,7 +22,7 @@ func PreventChanges(retError bool, fields ...string) feathers.Hook {
 			for _, field := range fields {
 				if _, ok := item[field]; ok {
 					if retError {
-						return feathers_error.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
+						return httperrors.NewBadGateway(fmt.Sprintf("Field %s may not be patched. (preventChanges)", field), nil)
 					}
 					delete(item, field)
 

@@ -1,4 +1,4 @@
-package feathers_mongo
+package mongo
 
 import (
 	"context"

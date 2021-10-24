@@ -1,4 +1,4 @@
-package feathers_auth
+package auth
 
 type Model struct {
 	Strategy string                 `mapstructure:"strategy" validate:"required"`

@@ -2,7 +2,7 @@ package hooks
 
 import (
 	"github.com/tobiasbeck/feathers-go/feathers"
-	"github.com/tobiasbeck/feathers-go/feathers/feathers_error"
+	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 )
 
 /**
@@ -11,7 +11,7 @@ import (
 */
 func Disallow(providers ...string) feathers.Hook {
 	return func(ctx *feathers.Context) error {
-		err := feathers_error.NewMethodNotAllowed("Provider "+ctx.Params.Provider+" can not call "+ctx.Method.String()+". (disallow)", nil)
+		err := httperrors.NewMethodNotAllowed("Provider "+ctx.Params.Provider+" can not call "+ctx.Method.String()+". (disallow)", nil)
 		if len(providers) == 0 {
 			return err
 		}
