@@ -12,7 +12,6 @@
 *.out
 
 /main
-config/
 cmd/
 docker-compose.yaml
 pkg/
