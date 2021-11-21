@@ -112,10 +112,11 @@ func NewSocketIOProvider(app *App, config map[string]interface{}) *SocketIOProvi
 		provider.app.Emit("connection", channel)
 	})
 	provider.server.On(gosocketio.OnDisconnection, func(channel *gosocketio.Channel) {
-		if _, ok := provider.connections[channel.Id()]; ok {
+		if socketchannel, ok := provider.connections[channel.Id()]; ok {
 			delete(provider.connections, channel.Id())
+			provider.app.Emit("disconnect", socketchannel)
 		}
-		provider.app.Emit("disconnect", channel)
+
 	})
 	return provider
 }
