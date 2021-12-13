@@ -2,6 +2,7 @@ package feathers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -102,6 +103,8 @@ type App struct {
 	services map[string]Service
 
 	servicesLock sync.RWMutex
+
+	server *http.Server
 
 	config map[string]interface{}
 }
@@ -363,10 +366,29 @@ func (a *App) Listen() {
 		for _, provider := range a.providers {
 			provider.Listen(port.(int), serveMux)
 		}
-		log.Panic(http.ListenAndServe(":"+strconv.Itoa(port.(int)), serveMux))
+		a.server = &http.Server{Addr: ":" + strconv.Itoa(port.(int)), Handler: serveMux}
+		err := a.server.ListenAndServe()
+		if err != nil {
+			log.Panic(err)
+		}
+		// log.Panic(http.ListenAndServe(":"+strconv.Itoa(port.(int)), serveMux))
 		return
 	}
 	log.Fatal("Could not find port (may not specified in config)")
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	if a.server == nil {
+		return errors.New("Server not running")
+	}
+	return a.server.Shutdown(ctx)
+}
+
+func (a *App) Close() error {
+	if a.server == nil {
+		return errors.New("Server not running")
+	}
+	return a.server.Close()
 }
 
 //LoadConfig loads configuration files from `./config directory`
