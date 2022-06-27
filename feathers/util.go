@@ -2,6 +2,7 @@ package feathers
 
 import (
 	"reflect"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
@@ -25,47 +26,73 @@ func setField(v interface{}, field string, value interface{}) {
 }
 
 type listenerEntry struct {
-	key      uuid.UUID
-	listener EventListener
-	once     bool
+	key     uuid.UUID
+	channel chan interface{}
+	once    bool
 }
 
-type EventListener = func(data interface{})
+type topic struct {
+	listeners []listenerEntry
+	sync.RWMutex
+}
 
 type EventEmitter struct {
-	eventListeners map[string][]listenerEntry
+	eventListeners map[string]*topic
 }
 
 func (el *EventEmitter) Emit(event string, data interface{}) {
-	if listeners, ok := el.eventListeners[event]; ok {
-		nl := make([]listenerEntry, 0, len(listeners))
-		for _, listener := range listeners {
-			listener.listener(data)
+	if eventTopic, ok := el.eventListeners[event]; ok {
+		eventTopic.RLock()
+		nl := make([]listenerEntry, 0, len(eventTopic.listeners))
+		for _, listener := range eventTopic.listeners {
+			listener.channel <- data
 			if !listener.once {
 				nl = append(nl, listener)
+			} else {
+				close(listener.channel)
 			}
 		}
-		el.eventListeners[event] = nl
+		eventTopic.RUnlock()
+		eventTopic.Lock()
+		defer eventTopic.Unlock()
+		t := el.eventListeners[event]
+		t.listeners = nl
+		el.eventListeners[event] = t
+	}
+}
+
+func (el *EventEmitter) initTopic(topicName string) {
+	if _, ok := el.eventListeners[topicName]; !ok {
+		el.eventListeners[topicName] = &topic{
+			listeners: make([]listenerEntry, 0),
+		}
 	}
 }
 
 type EventListenerUnregister = func() bool
 
-func (el *EventEmitter) On(event string, listener EventListener) EventListenerUnregister {
+func (el *EventEmitter) On(event string) (<-chan interface{}, EventListenerUnregister) {
 	if _, ok := el.eventListeners[event]; !ok {
-		el.eventListeners[event] = make([]listenerEntry, 0)
+		el.initTopic(event)
 	}
 	id, _ := uuid.New()
 	listenerE := listenerEntry{
-		key:      id,
-		listener: listener,
-		once:     false,
+		key:     id,
+		channel: make(chan interface{}),
+		once:    false,
 	}
-	el.eventListeners[event] = append(el.eventListeners[event], listenerE)
-	return func() bool {
-		for k, listener := range el.eventListeners[event] {
+
+	eventTopic := el.eventListeners[event]
+	eventTopic.Lock()
+	defer eventTopic.Unlock()
+	eventTopic.listeners = append(eventTopic.listeners, listenerE)
+	el.eventListeners[event] = eventTopic
+	return listenerE.channel, func() bool {
+		eventTopic.Lock()
+		defer eventTopic.Unlock()
+		for k, listener := range eventTopic.listeners {
 			if uuid.Equal(listener.key, listenerE.key) {
-				el.eventListeners[event] = append(el.eventListeners[event][:k], el.eventListeners[event][k+1:]...)
+				eventTopic.listeners = append(eventTopic.listeners[:k], eventTopic.listeners[k+1:]...)
 				return true
 			}
 		}
@@ -73,20 +100,25 @@ func (el *EventEmitter) On(event string, listener EventListener) EventListenerUn
 	}
 }
 
-func (el *EventEmitter) Once(event string, listener EventListener) {
+func (el *EventEmitter) Once(event string) <-chan interface{} {
 	if _, ok := el.eventListeners[event]; !ok {
-		el.eventListeners[event] = make([]listenerEntry, 0)
+		el.initTopic(event)
 	}
 	listenerE := listenerEntry{
-		listener: listener,
-		once:     true,
+		channel: make(chan interface{}),
+		once:    true,
 	}
-	el.eventListeners[event] = append(el.eventListeners[event], listenerE)
+	eventTopic := el.eventListeners[event]
+	eventTopic.Lock()
+	defer eventTopic.Unlock()
+	eventTopic.listeners = append(eventTopic.listeners, listenerE)
+	el.eventListeners[event] = eventTopic
+	return listenerE.channel
 }
 
 func NewEventEmitter() *EventEmitter {
 	return &EventEmitter{
-		eventListeners: make(map[string][]listenerEntry),
+		eventListeners: make(map[string]*topic),
 	}
 }
 
