@@ -223,10 +223,13 @@ func (f *Service) Patch(ctx context.Context, id string, data map[string]interfac
 			return nil, errors.Wrap(err, "Update Error")
 		}
 		if result.MatchedCount == 0 && result.UpsertedCount == 0 {
-			return nil, nil
+			return nil, httperrors.NewNotFound(fmt.Sprintf("Entity with id %s not found", id), nil)
 		}
 		params.Set("mongo_result", result)
 		findResult := collection.FindOne(ctx, query)
+		if findResult.Err() != nil {
+			return nil, err
+		}
 		var document map[string]interface{}
 		err = findResult.Decode(&document)
 		if err != nil {

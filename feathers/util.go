@@ -38,6 +38,7 @@ type topic struct {
 
 type EventEmitter struct {
 	eventListeners map[string]*topic
+	sync.Mutex
 }
 
 func (el *EventEmitter) Emit(event string, data interface{}) {
@@ -63,6 +64,8 @@ func (el *EventEmitter) Emit(event string, data interface{}) {
 
 func (el *EventEmitter) initTopic(topicName string) {
 	if _, ok := el.eventListeners[topicName]; !ok {
+		el.Lock()
+		defer el.Unlock()
 		el.eventListeners[topicName] = &topic{
 			listeners: make([]listenerEntry, 0),
 		}

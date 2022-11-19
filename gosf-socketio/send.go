@@ -74,7 +74,7 @@ func (c *Channel) Emit(method string, args interface{}) error {
 /**
 Create ack packet based on given data and send it and receive response
 */
-func (c *Channel) Ack(method string, args interface{}, timeout time.Duration) (string, error) {
+func (c *Channel) Ack(method string, args []interface{}, timeout time.Duration) (string, error) {
 	msg := &protocol.Message{
 		Type:   protocol.MessageTypeAckRequest,
 		AckId:  c.ack.getNextId(),
