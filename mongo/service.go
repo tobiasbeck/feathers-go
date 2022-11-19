@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
+
 	"github.com/tobiasbeck/feathers-go/feathers"
 	"github.com/tobiasbeck/feathers-go/feathers/httperrors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
