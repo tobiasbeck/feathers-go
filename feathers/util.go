@@ -38,7 +38,7 @@ type topic struct {
 
 type EventEmitter struct {
 	eventListeners map[string]*topic
-	sync.Mutex
+	sync.RWMutex
 }
 
 func (el *EventEmitter) Emit(event string, data interface{}) {
@@ -85,7 +85,9 @@ func (el *EventEmitter) On(event string) (<-chan interface{}, EventListenerUnreg
 		once:    false,
 	}
 
+	el.RLock()
 	eventTopic := el.eventListeners[event]
+	el.RUnlock()
 	eventTopic.Lock()
 	defer eventTopic.Unlock()
 	eventTopic.listeners = append(eventTopic.listeners, listenerE)
@@ -111,7 +113,9 @@ func (el *EventEmitter) Once(event string) <-chan interface{} {
 		channel: make(chan interface{}),
 		once:    true,
 	}
+	el.RLock()
 	eventTopic := el.eventListeners[event]
+	el.RUnlock()
 	eventTopic.Lock()
 	defer eventTopic.Unlock()
 	eventTopic.listeners = append(eventTopic.listeners, listenerE)
