@@ -15,3 +15,7 @@ type Connection interface {
 	AuthEntity() interface{}
 	SetAuthEntity(interface{})
 }
+
+type WritableConnection interface {
+	Emit(event string, data interface{}) error
+}

@@ -52,6 +52,10 @@ func (c *socketConnection) SetAuthEntity(entity interface{}) {
 	c.authEntity = entity
 }
 
+func (c *socketConnection) Emit(event string, data interface{}) error {
+	return c.channel.Emit(event, data)
+}
+
 func (c *socketConnection) IsAuthenticated() bool {
 	return c.authEntity != nil
 }
